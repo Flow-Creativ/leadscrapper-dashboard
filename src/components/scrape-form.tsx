@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Settings2, Zap, AlertTriangle } from "lucide-react";
+import { Search, Settings2, Zap, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -113,9 +113,17 @@ export function ScrapeForm({
               disabled={isFormDisabled}
               className="text-base"
             />
-            <p className="text-xs text-muted-foreground">
-              Use business categories + location for best results
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground">
+                Use business categories + location for best results
+              </p>
+              {isCheckingQuery && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Checking...
+                </span>
+              )}
+            </div>
             {!query && (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-muted-foreground">Try:</span>
