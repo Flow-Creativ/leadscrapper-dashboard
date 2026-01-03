@@ -14,8 +14,6 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { getDemoLeads } from "@/lib/api";
 import type { ScrapeRequest, Lead } from "@/lib/types";
 
-const MAX_CONCURRENT_JOBS = 3;
-
 export default function Dashboard() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
@@ -73,20 +71,15 @@ export default function Dashboard() {
         onSubmit={handleSubmit}
         isLoading={isStarting}
         disabled={user ? !canStartNewJob : false}
-        disabledMessage={user ? `Maximum ${MAX_CONCURRENT_JOBS} concurrent jobs reached. Wait for a job to complete or cancel one.` : undefined}
+        disabledMessage={user ? "A job is already running. Wait for it to complete or cancel it." : undefined}
       />
 
       {/* Active Jobs Section */}
       {activeJobs.length > 0 && (
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">
-              Active Jobs ({activeJobs.length})
-            </h2>
-            <span className="text-sm text-muted-foreground">
-              {MAX_CONCURRENT_JOBS - activeJobs.length} slots available
-            </span>
-          </div>
+          <h2 className="text-lg font-semibold">
+            Active Jobs ({activeJobs.length})
+          </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {activeJobs.map((job) => (
               <ActiveJobCard
