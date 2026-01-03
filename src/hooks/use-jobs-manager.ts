@@ -13,7 +13,7 @@ import type {
   JobStatusResponse,
 } from "@/lib/types";
 
-const MAX_CONCURRENT_JOBS = 1;
+const MAX_CONCURRENT_JOBS = parseInt(process.env.NEXT_PUBLIC_MAX_CONCURRENT_JOBS || "1", 10);
 const MAX_RECENT_JOBS = 5;
 const RECONNECT_DELAY = 2000;
 const MAX_RECONNECT_ATTEMPTS = 3;
