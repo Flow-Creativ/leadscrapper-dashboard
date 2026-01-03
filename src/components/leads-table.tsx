@@ -334,7 +334,7 @@ function LeadDetails({ lead }: { lead: Lead }) {
           items: research.pain_points,
           accent: "bg-amber-500",
           label: "text-amber-700",
-          bullet: "bg-amber-500",
+          bullet: "bg-muted-foreground/50",
           icon: <AlertCircle className="h-3.5 w-3.5 text-amber-600" />,
         },
         {
@@ -343,7 +343,7 @@ function LeadDetails({ lead }: { lead: Lead }) {
           items: research.opportunities,
           accent: "bg-green-500",
           label: "text-green-700",
-          bullet: "bg-green-500",
+          bullet: "bg-muted-foreground/50",
           icon: <Sparkles className="h-3.5 w-3.5 text-green-600" />,
         },
         {
@@ -352,7 +352,7 @@ function LeadDetails({ lead }: { lead: Lead }) {
           items: research.talking_points,
           accent: "bg-blue-500",
           label: "text-blue-700",
-          bullet: "bg-blue-500",
+          bullet: "bg-muted-foreground/50",
           icon: <MessageCircle className="h-3.5 w-3.5 text-blue-600" />,
         },
       ]
@@ -474,8 +474,8 @@ function LeadDetails({ lead }: { lead: Lead }) {
       )}
 
       {/* Research Section */}
-      <div className="space-y-3 pt-4 border-t">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="space-y-4 pt-4 border-t">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center">
               <Sparkles className="h-4 w-4 text-blue-600" />
@@ -490,11 +490,12 @@ function LeadDetails({ lead }: { lead: Lead }) {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 text-xs">
             {research && (
               <Button
                 variant="ghost"
                 size="sm"
+                className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
                 onClick={() =>
                   handleCopy(
                     [
@@ -519,6 +520,7 @@ function LeadDetails({ lead }: { lead: Lead }) {
               <Button
                 size="sm"
                 variant={research ? "secondary" : "outline"}
+                className="h-8 px-3 text-xs"
                 onClick={handleResearch}
                 disabled={isResearching}
               >
@@ -576,37 +578,45 @@ function LeadDetails({ lead }: { lead: Lead }) {
 
         {research && (
           <div className="space-y-4">
-            <div className="rounded-lg border bg-card p-4">
-              <p className="text-sm leading-relaxed max-w-prose text-foreground">
+            <div className="rounded-lg border border-border/60 bg-card p-5">
+              <p className="text-sm leading-[1.65] max-w-[72ch] text-foreground">
                 {research.overview}
               </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
               {researchSections.map(
                 (section) =>
                   section.items.length > 0 && (
                     <div
                       key={section.key}
-                      className="rounded-lg border bg-card p-4 shadow-[0_1px_0_rgba(15,23,42,0.04)]"
+                      className="relative flex h-full flex-col rounded-lg border border-border/60 bg-muted/50 p-5 shadow-sm"
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-start gap-3">
-                          <div className={`h-12 w-1 rounded-full ${section.accent}`} />
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em]">
-                              <span className={section.label}>{section.title}</span>
-                              {section.icon}
-                            </div>
-                            <p className="text-[11px] text-muted-foreground">
-                              Highlights to use in outreach
-                            </p>
+                      <div className="flex items-start gap-3 pb-2">
+                        <div className={`h-full w-1 rounded-full ${section.accent} self-stretch`} />
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em]">
+                            <span className={section.label}>{section.title}</span>
+                            {section.icon}
                           </div>
+                          <p className="text-[11px] text-muted-foreground">
+                            Highlights to use in outreach
+                          </p>
                         </div>
+                      </div>
+                      <ul className="mt-2 space-y-3 text-sm leading-[1.65] text-foreground">
+                        {section.items.map((item, i) => (
+                          <li key={i} className="flex gap-2">
+                            <span className={`mt-2 h-1.5 w-1.5 rounded-full ${section.bullet}`} />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="flex flex-1 items-end justify-end pt-3">
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
+                          size="sm"
+                          className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
                           onClick={() => handleCopy(section.items.join("\n"), section.key)}
                           title={`Copy ${section.title.toLowerCase()}`}
                         >
@@ -617,14 +627,6 @@ function LeadDetails({ lead }: { lead: Lead }) {
                           )}
                         </Button>
                       </div>
-                      <ul className="mt-3 space-y-2 text-sm leading-relaxed text-foreground">
-                        {section.items.map((item, i) => (
-                          <li key={i} className="flex gap-2">
-                            <span className={`mt-2 h-1.5 w-1.5 rounded-full ${section.bullet}`} />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
                     </div>
                   )
               )}
