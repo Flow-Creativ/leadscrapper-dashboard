@@ -37,6 +37,18 @@ export function DuplicateQueryModal({
   const exactMatch = similarJobs.find((j) => j.match_type === "exact");
   const totalExistingLeads = similarJobs.reduce((sum, j) => sum + j.total_leads, 0);
 
+  // Prioritize jobs with leads, then sort by most recent
+  const sortedJobs = [...similarJobs].sort((a, b) => {
+    // Jobs with leads come first
+    if (a.total_leads > 0 && b.total_leads === 0) return -1;
+    if (a.total_leads === 0 && b.total_leads > 0) return 1;
+    // Then by date (most recent first)
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
+  // Show up to 3 jobs, preferring ones with leads
+  const jobsToShow = sortedJobs.slice(0, 3);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -55,7 +67,7 @@ export function DuplicateQueryModal({
           <div className="rounded-lg border p-3 space-y-2">
             <h4 className="text-sm font-medium">Your previous searches:</h4>
             <div className="space-y-1">
-              {similarJobs.slice(0, 3).map((job) => (
+              {jobsToShow.map((job) => (
                 <Link
                   key={job.job_id}
                   href={`/jobs/${job.job_id}`}
@@ -71,7 +83,7 @@ export function DuplicateQueryModal({
             </div>
             {totalExistingLeads > 0 && (
               <p className="text-xs text-muted-foreground">
-                You already have {totalExistingLeads} leads from similar searches.
+                Total: {totalExistingLeads} leads across {similarJobs.length} similar {similarJobs.length === 1 ? "search" : "searches"}.
               </p>
             )}
           </div>
