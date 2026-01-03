@@ -427,7 +427,7 @@ function LeadDetails({ lead }: { lead: Lead }) {
           </div>
         )}
 
-        {!research && !isResearching && !researchError && (
+        {!research && !isResearching && !researchError && lead.id && (
           <p className="text-sm text-muted-foreground">
             Click &quot;Generate Research&quot; to get AI-powered insights about this business.
           </p>
