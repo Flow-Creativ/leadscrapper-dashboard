@@ -15,6 +15,9 @@ import {
   Facebook,
   Linkedin,
   Search,
+  Sparkles,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +37,8 @@ import {
 } from "@/components/ui/card";
 import { TierBadge } from "./tier-badge";
 import { trackLeadViewed, trackOutreachCopied, trackContactAction, trackExternalLinkClick } from "@/lib/firebase/analytics";
-import type { Lead, JobProgress } from "@/lib/types";
+import { generateLeadResearch } from "@/lib/api";
+import type { Lead, JobProgress, LeadResearch } from "@/lib/types";
 
 interface LeadsTableProps {
   leads: Lead[];
@@ -262,8 +266,28 @@ export function LeadsTable({ leads, isLoading, jobStatus, jobProgress }: LeadsTa
 }
 
 function LeadDetails({ lead }: { lead: Lead }) {
+  const [research, setResearch] = useState<LeadResearch | null>(lead.research || null);
+  const [isResearching, setIsResearching] = useState(false);
+  const [researchError, setResearchError] = useState<string | null>(null);
+
   const handleOutreachClick = (channel: string) => {
     trackOutreachCopied(channel, lead.tier);
+  };
+
+  const handleResearch = async () => {
+    if (!lead.id) return;
+
+    setIsResearching(true);
+    setResearchError(null);
+
+    try {
+      const result = await generateLeadResearch(lead.id);
+      setResearch(result.research);
+    } catch {
+      setResearchError("Failed to generate research. Please try again.");
+    } finally {
+      setIsResearching(false);
+    }
   };
 
   return (
@@ -366,6 +390,104 @@ function LeadDetails({ lead }: { lead: Lead }) {
           )}
         </div>
       )}
+
+      {/* Research Section */}
+      <div className="space-y-3 pt-4 border-t">
+        <div className="flex items-center justify-between">
+          <h4 className="font-semibold flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-blue-500" />
+            Business Research
+          </h4>
+          {!research && lead.id && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleResearch}
+              disabled={isResearching}
+            >
+              {isResearching ? (
+                <>
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  Researching...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-3 w-3" />
+                  Generate Research
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+
+        {researchError && (
+          <div className="flex items-center gap-2 text-sm text-red-500">
+            <AlertCircle className="h-4 w-4" />
+            {researchError}
+          </div>
+        )}
+
+        {!research && !isResearching && !researchError && (
+          <p className="text-sm text-muted-foreground">
+            Click &quot;Generate Research&quot; to get AI-powered insights about this business.
+          </p>
+        )}
+
+        {research && (
+          <div className="space-y-3 rounded-lg bg-blue-50 dark:bg-blue-950 p-4">
+            {/* Overview */}
+            <div>
+              <h5 className="text-xs font-medium text-muted-foreground mb-1">Overview</h5>
+              <p className="text-sm">{research.overview}</p>
+            </div>
+
+            {/* Pain Points */}
+            {research.pain_points.length > 0 && (
+              <div>
+                <h5 className="text-xs font-medium text-muted-foreground mb-1">Potential Pain Points</h5>
+                <ul className="text-sm space-y-1">
+                  {research.pain_points.map((point, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-amber-500 mt-0.5">&#x2022;</span>
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Opportunities */}
+            {research.opportunities.length > 0 && (
+              <div>
+                <h5 className="text-xs font-medium text-muted-foreground mb-1">Why They Might Need You</h5>
+                <ul className="text-sm space-y-1">
+                  {research.opportunities.map((opp, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-green-500 mt-0.5">&#x2022;</span>
+                      <span>{opp}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Talking Points */}
+            {research.talking_points.length > 0 && (
+              <div>
+                <h5 className="text-xs font-medium text-muted-foreground mb-1">Conversation Starters</h5>
+                <ul className="text-sm space-y-1">
+                  {research.talking_points.map((point, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <MessageCircle className="h-3 w-3 text-blue-500 mt-0.5 flex-shrink-0" />
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Outreach Messages */}
       {lead.outreach && (

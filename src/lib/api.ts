@@ -9,6 +9,7 @@ import type {
   Lead,
   QueryEnhanceResponse,
   DuplicateCheckResponse,
+  LeadResearchResponse,
 } from "./types";
 import { ApiError } from "./types";
 
@@ -186,6 +187,12 @@ export async function checkDuplicateQuery(query: string): Promise<DuplicateCheck
       message: null,
     };
   }
+}
+
+export async function generateLeadResearch(leadId: string): Promise<LeadResearchResponse> {
+  return apiFetch<LeadResearchResponse>(`/api/leads/${leadId}/research`, {
+    method: "POST",
+  });
 }
 
 // Export getAuthToken for WebSocket auth

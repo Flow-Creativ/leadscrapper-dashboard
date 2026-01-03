@@ -67,7 +67,22 @@ export interface OutreachData {
   cold_call_script: string;
 }
 
+export interface LeadResearch {
+  overview: string;
+  pain_points: string[];
+  opportunities: string[];
+  talking_points: string[];
+  generated_at: string;
+}
+
+export interface LeadResearchResponse {
+  lead_id: string;
+  research: LeadResearch;
+  cached: boolean;
+}
+
 export interface Lead {
+  id?: string; // Lead ID for research endpoint
   name: string;
   phone: string | null;
   email: string | null;
@@ -85,6 +100,7 @@ export interface Lead {
   instagram: string | null;
   maps_url: string | null;
   outreach: OutreachData | null;
+  research?: LeadResearch | null;
 }
 
 // WebSocket Message Types
