@@ -18,6 +18,9 @@ import {
   Sparkles,
   Loader2,
   AlertCircle,
+  Copy,
+  Check,
+  Clock3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -269,6 +272,7 @@ function LeadDetails({ lead }: { lead: Lead }) {
   const [research, setResearch] = useState<LeadResearch | null>(lead.research || null);
   const [isResearching, setIsResearching] = useState(false);
   const [researchError, setResearchError] = useState<string | null>(null);
+  const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
   const handleOutreachClick = (channel: string) => {
     trackOutreachCopied(channel, lead.tier);
@@ -289,6 +293,70 @@ function LeadDetails({ lead }: { lead: Lead }) {
       setIsResearching(false);
     }
   };
+
+  const formatGeneratedAt = (value?: string) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+
+    const diffMs = Date.now() - date.getTime();
+    const diffMinutes = Math.round(diffMs / 60000);
+    if (diffMinutes < 1) return "Just now";
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    const diffHours = Math.round(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return date.toLocaleDateString();
+  };
+
+  const handleCopy = async (text: string, key: string) => {
+    if (!text || !navigator?.clipboard?.writeText) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedSection(key);
+      setTimeout(() => setCopiedSection(null), 1200);
+    } catch {
+      // Fallback: ignore copy errors to avoid blocking UX
+    }
+  };
+
+  const contextChips = [
+    lead.tier ? `${lead.tier.toUpperCase()} tier` : null,
+    lead.rating ? `${lead.rating.toFixed(1)} • ${lead.review_count ?? 0} reviews` : null,
+    lead.whatsapp ? "Has WhatsApp" : "No WhatsApp",
+    lead.website ? "Has website" : "No website",
+  ].filter(Boolean) as string[];
+
+  const researchSections = research
+    ? [
+        {
+          key: "pain_points",
+          title: "Pain Points",
+          items: research.pain_points,
+          accent: "bg-amber-500",
+          label: "text-amber-700",
+          bullet: "bg-amber-500",
+          icon: <AlertCircle className="h-3.5 w-3.5 text-amber-600" />,
+        },
+        {
+          key: "opportunities",
+          title: "Opportunities",
+          items: research.opportunities,
+          accent: "bg-green-500",
+          label: "text-green-700",
+          bullet: "bg-green-500",
+          icon: <Sparkles className="h-3.5 w-3.5 text-green-600" />,
+        },
+        {
+          key: "talking_points",
+          title: "Talking Points",
+          items: research.talking_points,
+          accent: "bg-blue-500",
+          label: "text-blue-700",
+          bullet: "bg-blue-500",
+          icon: <MessageCircle className="h-3.5 w-3.5 text-blue-600" />,
+        },
+      ]
+    : [];
 
   return (
     <div className="p-4 space-y-4">
@@ -391,33 +459,83 @@ function LeadDetails({ lead }: { lead: Lead }) {
         </div>
       )}
 
+      {/* Context chips */}
+      {contextChips.length > 0 && (
+        <div className="flex flex-wrap gap-2 pt-1">
+          {contextChips.map((chip, index) => (
+            <span
+              key={`${chip}-${index}`}
+              className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground"
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Research Section */}
       <div className="space-y-3 pt-4 border-t">
-        <div className="flex items-center justify-between">
-          <h4 className="font-semibold flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-blue-500" />
-            Business Research
-          </h4>
-          {!research && lead.id && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleResearch}
-              disabled={isResearching}
-            >
-              {isResearching ? (
-                <>
-                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                  Researching...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-3 w-3" />
-                  Generate Research
-                </>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center">
+              <Sparkles className="h-4 w-4 text-blue-600" />
+            </div>
+            <div className="flex flex-col">
+              <h4 className="font-semibold leading-none">Business Research</h4>
+              {research?.generated_at && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock3 className="h-3.5 w-3.5" />
+                  <span>Generated {formatGeneratedAt(research.generated_at)}</span>
+                </div>
               )}
-            </Button>
-          )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {research && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  handleCopy(
+                    [
+                      research.overview,
+                      research.pain_points.join("\n"),
+                      research.opportunities.join("\n"),
+                      research.talking_points.join("\n"),
+                    ].join("\n\n"),
+                    "all"
+                  )
+                }
+              >
+                {copiedSection === "all" ? (
+                  <Check className="mr-2 h-4 w-4" />
+                ) : (
+                  <Copy className="mr-2 h-4 w-4" />
+                )}
+                Copy brief
+              </Button>
+            )}
+            {lead.id && (
+              <Button
+                size="sm"
+                variant={research ? "secondary" : "outline"}
+                onClick={handleResearch}
+                disabled={isResearching}
+              >
+                {isResearching ? (
+                  <>
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    {research ? "Refreshing..." : "Researching..."}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-3 w-3" />
+                    {research ? "Refresh brief" : "Generate research"}
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
 
         {researchError && (
@@ -428,84 +546,87 @@ function LeadDetails({ lead }: { lead: Lead }) {
         )}
 
         {!research && !isResearching && !researchError && lead.id && (
-          <p className="text-sm text-muted-foreground">
-            Click &quot;Generate Research&quot; to get AI-powered insights about this business.
-          </p>
+          <div className="rounded-lg border bg-card p-4">
+            <p className="text-sm text-muted-foreground">
+              Generate a short brief to tailor your outreach. We&apos;ll capture pain points, opportunities, and talking points in about 30 seconds.
+            </p>
+          </div>
+        )}
+
+        {isResearching && !research && (
+          <div className="space-y-3">
+            <div className="h-4 w-48 rounded bg-muted animate-pulse" />
+            <div className="grid gap-3 md:grid-cols-3">
+              {[0, 1, 2].map((item) => (
+                <div key={item} className="rounded-lg border bg-card p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-1 rounded-full bg-muted-foreground/30" />
+                    <div className="h-3 w-24 rounded bg-muted animate-pulse" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-3 w-full rounded bg-muted animate-pulse" />
+                    <div className="h-3 w-11/12 rounded bg-muted animate-pulse" />
+                    <div className="h-3 w-10/12 rounded bg-muted animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {research && (
           <div className="space-y-4">
-            {/* Overview - Full width with max-width for readability */}
             <div className="rounded-lg border bg-card p-4">
-              <p className="text-sm leading-relaxed max-w-prose">{research.overview}</p>
+              <p className="text-sm leading-relaxed max-w-prose text-foreground">
+                {research.overview}
+              </p>
             </div>
 
-            {/* Grid layout for the three sections */}
             <div className="grid gap-4 md:grid-cols-3">
-              {/* Pain Points */}
-              {research.pain_points.length > 0 && (
-                <div className="rounded-lg border bg-amber-50 dark:bg-amber-950/30 p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="h-6 w-6 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
-                      <AlertCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              {researchSections.map(
+                (section) =>
+                  section.items.length > 0 && (
+                    <div
+                      key={section.key}
+                      className="rounded-lg border bg-card p-4 shadow-[0_1px_0_rgba(15,23,42,0.04)]"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-3">
+                          <div className={`h-12 w-1 rounded-full ${section.accent}`} />
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em]">
+                              <span className={section.label}>{section.title}</span>
+                              {section.icon}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                              Highlights to use in outreach
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleCopy(section.items.join("\n"), section.key)}
+                          title={`Copy ${section.title.toLowerCase()}`}
+                        >
+                          {copiedSection === section.key ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                      <ul className="mt-3 space-y-2 text-sm leading-relaxed text-foreground">
+                        {section.items.map((item, i) => (
+                          <li key={i} className="flex gap-2">
+                            <span className={`mt-2 h-1.5 w-1.5 rounded-full ${section.bullet}`} />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <h5 className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
-                      Pain Points
-                    </h5>
-                  </div>
-                  <ul className="text-sm space-y-2">
-                    {research.pain_points.map((point, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-amber-500 mt-0.5 flex-shrink-0">•</span>
-                        <span className="text-amber-900 dark:text-amber-100">{point}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Opportunities */}
-              {research.opportunities.length > 0 && (
-                <div className="rounded-lg border bg-green-50 dark:bg-green-950/30 p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="h-6 w-6 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                      <Sparkles className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-                    </div>
-                    <h5 className="text-xs font-semibold uppercase tracking-wide text-green-700 dark:text-green-400">
-                      Opportunities
-                    </h5>
-                  </div>
-                  <ul className="text-sm space-y-2">
-                    {research.opportunities.map((opp, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-green-500 mt-0.5 flex-shrink-0">•</span>
-                        <span className="text-green-900 dark:text-green-100">{opp}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Talking Points */}
-              {research.talking_points.length > 0 && (
-                <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/30 p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="h-6 w-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                      <MessageCircle className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <h5 className="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-400">
-                      Talking Points
-                    </h5>
-                  </div>
-                  <ul className="text-sm space-y-2">
-                    {research.talking_points.map((point, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-blue-500 mt-0.5 flex-shrink-0">•</span>
-                        <span className="text-blue-900 dark:text-blue-100">{point}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                  )
               )}
             </div>
           </div>
