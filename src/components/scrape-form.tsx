@@ -16,10 +16,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { QueryWarningModal } from "@/components/query-warning-modal";
+import { DuplicateQueryModal } from "@/components/duplicate-query-modal";
 import { trackScrapeStarted } from "@/lib/firebase/analytics";
-import { enhanceQuery } from "@/lib/api";
+import { enhanceQuery, checkDuplicateQuery } from "@/lib/api";
 import { handleApiError, isRateLimitError, isBannedError } from "@/lib/error-handler";
-import type { ScrapeRequest, QueryEnhanceResponse } from "@/lib/types";
+import type { ScrapeRequest, QueryEnhanceResponse, DuplicateCheckResponse } from "@/lib/types";
 import { ApiError } from "@/lib/types";
 
 interface ScrapeFormProps {
@@ -58,6 +59,11 @@ export function ScrapeForm({
   const [pendingWarning, setPendingWarning] = useState<QueryEnhanceResponse | null>(null);
   const [formError, setFormError] = useState<FormError>(null);
 
+  // Duplicate query check state
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateCheck, setDuplicateCheck] = useState<DuplicateCheckResponse | null>(null);
+  const [skipDuplicateCheck, setSkipDuplicateCheck] = useState(false);
+
   const MAX_PRODUCT_CONTEXT_CHARS = 1000;
   const productContextChars = productContext.length;
   const isOverCharLimit = productContextChars > MAX_PRODUCT_CONTEXT_CHARS;
@@ -81,10 +87,23 @@ export function ScrapeForm({
 
     // Clear previous errors
     setFormError(null);
-
-    // Check query before submitting
     setIsChecking(true);
+
     try {
+      // Step 1: Check for duplicate queries (unless bypassed)
+      if (!skipDuplicateCheck) {
+        const dupResult = await checkDuplicateQuery(query.trim());
+        if (dupResult.has_duplicates) {
+          setDuplicateCheck(dupResult);
+          setShowDuplicateModal(true);
+          setIsChecking(false);
+          return;
+        }
+      }
+      // Reset the skip flag after use
+      setSkipDuplicateCheck(false);
+
+      // Step 2: Check query quality (existing enhancement check)
       const result = await enhanceQuery(query.trim());
       if (result.is_problematic) {
         setPendingWarning(result);
@@ -119,7 +138,7 @@ export function ScrapeForm({
       }
 
       // For other errors, proceed with scrape anyway
-      // (don't block user on query enhancement errors)
+      // (don't block user on query check errors)
     }
     setIsChecking(false);
 
@@ -137,11 +156,27 @@ export function ScrapeForm({
     setQuery(suggestion);
     setShowWarningModal(false);
     setPendingWarning(null);
+    setShowDuplicateModal(false);
+    setDuplicateCheck(null);
   };
 
   const handleCloseModal = () => {
     setShowWarningModal(false);
     setPendingWarning(null);
+  };
+
+  // Handlers for duplicate query modal
+  const handleProceedWithDuplicate = () => {
+    setShowDuplicateModal(false);
+    setSkipDuplicateCheck(true);
+    // Re-trigger submit, skipping duplicate check this time
+    const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+    handleSubmit(fakeEvent);
+  };
+
+  const handleCloseDuplicateModal = () => {
+    setShowDuplicateModal(false);
+    setDuplicateCheck(null);
   };
 
   return (
@@ -358,6 +393,20 @@ export function ScrapeForm({
         message={pendingWarning?.message || null}
         suggestions={pendingWarning?.suggestions || []}
       />
+
+      {/* Duplicate Query Modal */}
+      {duplicateCheck && (
+        <DuplicateQueryModal
+          open={showDuplicateModal}
+          onOpenChange={handleCloseDuplicateModal}
+          query={query}
+          similarJobs={duplicateCheck.similar_jobs}
+          suggestions={duplicateCheck.suggestions}
+          message={duplicateCheck.message}
+          onProceed={handleProceedWithDuplicate}
+          onUseSuggestion={handleUseSuggestion}
+        />
+      )}
     </>
   );
 }

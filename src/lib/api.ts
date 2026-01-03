@@ -8,6 +8,7 @@ import type {
   JobListResponse,
   Lead,
   QueryEnhanceResponse,
+  DuplicateCheckResponse,
 } from "./types";
 import { ApiError } from "./types";
 
@@ -166,6 +167,23 @@ export async function enhanceQuery(query: string): Promise<QueryEnhanceResponse>
       is_problematic: false,
       message: null,
       suggestions: [],
+    };
+  }
+}
+
+export async function checkDuplicateQuery(query: string): Promise<DuplicateCheckResponse> {
+  try {
+    return await apiFetch<DuplicateCheckResponse>("/api/query/check-duplicate", {
+      method: "POST",
+      body: JSON.stringify({ query }),
+    });
+  } catch {
+    // Don't block on duplicate check errors - just proceed
+    return {
+      has_duplicates: false,
+      similar_jobs: [],
+      suggestions: [],
+      message: null,
     };
   }
 }

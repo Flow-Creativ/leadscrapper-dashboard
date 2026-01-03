@@ -131,6 +131,22 @@ export interface QueryEnhanceResponse {
   suggestions: string[];
 }
 
+// Duplicate Query Check
+export interface SimilarJob {
+  job_id: string;
+  query: string;
+  total_leads: number;
+  created_at: string;
+  match_type: "exact" | "contains" | "similar";
+}
+
+export interface DuplicateCheckResponse {
+  has_duplicates: boolean;
+  similar_jobs: SimilarJob[];
+  suggestions: string[];
+  message: string | null;
+}
+
 // API Error Types
 export type ApiErrorType = "rate_limit" | "banned" | "unauthorized" | "generic";
 
