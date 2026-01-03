@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Settings2, Zap, Loader2 } from "lucide-react";
+import { Search, Settings2, Zap, Loader2, AlertCircle, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,20 +18,31 @@ import {
 import { QueryWarningModal } from "@/components/query-warning-modal";
 import { trackScrapeStarted } from "@/lib/firebase/analytics";
 import { enhanceQuery } from "@/lib/api";
+import { handleApiError, isRateLimitError, isBannedError } from "@/lib/error-handler";
 import type { ScrapeRequest, QueryEnhanceResponse } from "@/lib/types";
+import { ApiError } from "@/lib/types";
 
 interface ScrapeFormProps {
   onSubmit: (request: ScrapeRequest) => void;
   isLoading: boolean;
   disabled?: boolean;
   disabledMessage?: string;
+  onBanned?: () => void; // Callback when user is banned
 }
+
+// Error state type
+type FormError = {
+  type: "rate_limit" | "banned" | "generic";
+  message: string;
+  retryAfter?: number;
+} | null;
 
 export function ScrapeForm({
   onSubmit,
   isLoading,
   disabled = false,
   disabledMessage,
+  onBanned,
 }: ScrapeFormProps) {
   const [query, setQuery] = useState("");
   const [maxResults, setMaxResults] = useState(10);
@@ -45,6 +56,7 @@ export function ScrapeForm({
   const [isChecking, setIsChecking] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [pendingWarning, setPendingWarning] = useState<QueryEnhanceResponse | null>(null);
+  const [formError, setFormError] = useState<FormError>(null);
 
   const MAX_PRODUCT_CONTEXT_CHARS = 1000;
   const productContextChars = productContext.length;
@@ -67,6 +79,9 @@ export function ScrapeForm({
     e.preventDefault();
     if (!query.trim() || isOverCharLimit) return;
 
+    // Clear previous errors
+    setFormError(null);
+
     // Check query before submitting
     setIsChecking(true);
     try {
@@ -77,8 +92,34 @@ export function ScrapeForm({
         setIsChecking(false);
         return;
       }
-    } catch {
-      // On error, proceed anyway
+    } catch (error) {
+      setIsChecking(false);
+
+      // Handle specific error types
+      if (error instanceof ApiError) {
+        if (error.isRateLimited) {
+          setFormError({
+            type: "rate_limit",
+            message: "You're making requests too fast. Please wait before trying again.",
+            retryAfter: error.retryAfter || 60,
+          });
+          handleApiError(error); // Show toast
+          return;
+        }
+
+        if (error.isBanned) {
+          setFormError({
+            type: "banned",
+            message: "Your account has been temporarily restricted. Please try again later.",
+          });
+          handleApiError(error); // Show toast
+          onBanned?.(); // Notify parent
+          return;
+        }
+      }
+
+      // For other errors, proceed with scrape anyway
+      // (don't block user on query enhancement errors)
     }
     setIsChecking(false);
 
@@ -252,6 +293,35 @@ export function ScrapeForm({
                 {disabledMessage}
               </div>
             )}
+
+            {/* Error Messages */}
+            {formError && (
+              <div
+                className={`rounded-lg p-3 text-sm flex items-start gap-2 ${
+                  formError.type === "banned"
+                    ? "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400"
+                    : "bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-400"
+                }`}
+              >
+                {formError.type === "banned" ? (
+                  <Ban className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                )}
+                <div>
+                  <p className="font-medium">
+                    {formError.type === "banned" ? "Account Restricted" : "Rate Limited"}
+                  </p>
+                  <p>{formError.message}</p>
+                  {formError.retryAfter && (
+                    <p className="mt-1 text-xs opacity-80">
+                      Try again in {formError.retryAfter} seconds
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
             <Button
               type="submit"
               disabled={isFormDisabled || !query.trim() || isOverCharLimit}

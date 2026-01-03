@@ -9,6 +9,7 @@ import type {
   Lead,
   QueryEnhanceResponse,
 } from "./types";
+import { ApiError } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -45,7 +46,13 @@ async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promis
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(error.detail || `API Error: ${response.status}`);
+    const message = error.detail || `API Error: ${response.status}`;
+
+    // Extract Retry-After header for rate limits
+    const retryAfterHeader = response.headers.get("Retry-After");
+    const retryAfter = retryAfterHeader ? parseInt(retryAfterHeader, 10) : null;
+
+    throw new ApiError(message, response.status, retryAfter);
   }
 
   return response.json();

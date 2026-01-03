@@ -126,3 +126,46 @@ export interface QueryEnhanceResponse {
   message: string | null;
   suggestions: string[];
 }
+
+// API Error Types
+export type ApiErrorType = "rate_limit" | "banned" | "unauthorized" | "generic";
+
+export class ApiError extends Error {
+  public readonly status: number;
+  public readonly type: ApiErrorType;
+  public readonly retryAfter: number | null;
+
+  constructor(
+    message: string,
+    status: number,
+    retryAfter: number | null = null
+  ) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.retryAfter = retryAfter;
+
+    // Determine error type from status
+    if (status === 429) {
+      this.type = "rate_limit";
+    } else if (status === 403) {
+      this.type = "banned";
+    } else if (status === 401) {
+      this.type = "unauthorized";
+    } else {
+      this.type = "generic";
+    }
+  }
+
+  get isRateLimited(): boolean {
+    return this.type === "rate_limit";
+  }
+
+  get isBanned(): boolean {
+    return this.type === "banned";
+  }
+
+  get isUnauthorized(): boolean {
+    return this.type === "unauthorized";
+  }
+}
