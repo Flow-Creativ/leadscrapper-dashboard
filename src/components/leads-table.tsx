@@ -434,57 +434,80 @@ function LeadDetails({ lead }: { lead: Lead }) {
         )}
 
         {research && (
-          <div className="space-y-3 rounded-lg bg-blue-50 dark:bg-blue-950 p-4">
-            {/* Overview */}
-            <div>
-              <h5 className="text-xs font-medium text-muted-foreground mb-1">Overview</h5>
-              <p className="text-sm">{research.overview}</p>
+          <div className="space-y-4">
+            {/* Overview - Full width with max-width for readability */}
+            <div className="rounded-lg border bg-card p-4">
+              <p className="text-sm leading-relaxed max-w-prose">{research.overview}</p>
             </div>
 
-            {/* Pain Points */}
-            {research.pain_points.length > 0 && (
-              <div>
-                <h5 className="text-xs font-medium text-muted-foreground mb-1">Potential Pain Points</h5>
-                <ul className="text-sm space-y-1">
-                  {research.pain_points.map((point, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-amber-500 mt-0.5">&#x2022;</span>
-                      <span>{point}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {/* Grid layout for the three sections */}
+            <div className="grid gap-4 md:grid-cols-3">
+              {/* Pain Points */}
+              {research.pain_points.length > 0 && (
+                <div className="rounded-lg border bg-amber-50 dark:bg-amber-950/30 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-6 w-6 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
+                      <AlertCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <h5 className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                      Pain Points
+                    </h5>
+                  </div>
+                  <ul className="text-sm space-y-2">
+                    {research.pain_points.map((point, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-amber-500 mt-0.5 flex-shrink-0">•</span>
+                        <span className="text-amber-900 dark:text-amber-100">{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-            {/* Opportunities */}
-            {research.opportunities.length > 0 && (
-              <div>
-                <h5 className="text-xs font-medium text-muted-foreground mb-1">Why They Might Need You</h5>
-                <ul className="text-sm space-y-1">
-                  {research.opportunities.map((opp, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-green-500 mt-0.5">&#x2022;</span>
-                      <span>{opp}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+              {/* Opportunities */}
+              {research.opportunities.length > 0 && (
+                <div className="rounded-lg border bg-green-50 dark:bg-green-950/30 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-6 w-6 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                      <Sparkles className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <h5 className="text-xs font-semibold uppercase tracking-wide text-green-700 dark:text-green-400">
+                      Opportunities
+                    </h5>
+                  </div>
+                  <ul className="text-sm space-y-2">
+                    {research.opportunities.map((opp, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-green-500 mt-0.5 flex-shrink-0">•</span>
+                        <span className="text-green-900 dark:text-green-100">{opp}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-            {/* Talking Points */}
-            {research.talking_points.length > 0 && (
-              <div>
-                <h5 className="text-xs font-medium text-muted-foreground mb-1">Conversation Starters</h5>
-                <ul className="text-sm space-y-1">
-                  {research.talking_points.map((point, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <MessageCircle className="h-3 w-3 text-blue-500 mt-0.5 flex-shrink-0" />
-                      <span>{point}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+              {/* Talking Points */}
+              {research.talking_points.length > 0 && (
+                <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/30 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-6 w-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                      <MessageCircle className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <h5 className="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-400">
+                      Talking Points
+                    </h5>
+                  </div>
+                  <ul className="text-sm space-y-2">
+                    {research.talking_points.map((point, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-blue-500 mt-0.5 flex-shrink-0">•</span>
+                        <span className="text-blue-900 dark:text-blue-100">{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
