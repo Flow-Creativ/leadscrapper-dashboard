@@ -253,7 +253,7 @@ export function LeadsTable({ leads, isLoading, jobStatus, jobProgress }: LeadsTa
                   </TableRow>
                   {expandedRows.has(`${lead.name}-${index}`) && (
                     <TableRow>
-                      <TableCell colSpan={8} className="bg-muted/30">
+                      <TableCell colSpan={8} className="bg-muted/30 !whitespace-normal align-top">
                         <LeadDetails lead={lead} />
                       </TableCell>
                     </TableRow>
@@ -273,6 +273,7 @@ function LeadDetails({ lead }: { lead: Lead }) {
   const [isResearching, setIsResearching] = useState(false);
   const [researchError, setResearchError] = useState<string | null>(null);
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
+  const [expandedBullets, setExpandedBullets] = useState<Record<string, boolean>>({});
 
   const handleOutreachClick = (channel: string) => {
     trackOutreachCopied(channel, lead.tier);
@@ -326,12 +327,19 @@ function LeadDetails({ lead }: { lead: Lead }) {
     lead.website ? "Has website" : "No website",
   ].filter(Boolean) as string[];
 
+  const formatText = (text: string) => {
+    const cleaned = text.replace(/\s+/g, " ").trim();
+    if (!cleaned) return "";
+    const spaced = cleaned.replace(/([.!?])([^\\s])/g, "$1 $2");
+    return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  };
+
   const researchSections = research
     ? [
         {
           key: "pain_points",
           title: "Pain Points",
-          items: research.pain_points,
+          items: research.pain_points.map(formatText),
           accent: "bg-amber-500",
           label: "text-amber-700",
           bullet: "bg-muted-foreground/50",
@@ -340,7 +348,7 @@ function LeadDetails({ lead }: { lead: Lead }) {
         {
           key: "opportunities",
           title: "Opportunities",
-          items: research.opportunities,
+          items: research.opportunities.map(formatText),
           accent: "bg-green-500",
           label: "text-green-700",
           bullet: "bg-muted-foreground/50",
@@ -349,7 +357,7 @@ function LeadDetails({ lead }: { lead: Lead }) {
         {
           key: "talking_points",
           title: "Talking Points",
-          items: research.talking_points,
+          items: research.talking_points.map(formatText),
           accent: "bg-blue-500",
           label: "text-blue-700",
           bullet: "bg-muted-foreground/50",
@@ -357,6 +365,36 @@ function LeadDetails({ lead }: { lead: Lead }) {
         },
       ]
     : [];
+
+  const formattedOverview = research ? formatText(research.overview) : "";
+
+  const CollapsibleText = ({ text, sectionKey }: { text: string; sectionKey: string }) => {
+    const limit = 220;
+    const formatted = formatText(text);
+    const shouldClamp = formatted.length > limit;
+    const isExpanded = expandedBullets[`${sectionKey}-${formatted}`];
+    const displayText = shouldClamp && !isExpanded ? `${formatted.slice(0, limit)}…` : formatted;
+
+    return (
+      <div className="space-y-1">
+        <span className="whitespace-normal break-words">{displayText}</span>
+        {shouldClamp && (
+          <button
+            type="button"
+            className="text-xs font-medium text-blue-600 hover:underline"
+            onClick={() =>
+              setExpandedBullets((prev) => ({
+                ...prev,
+                [`${sectionKey}-${formatted}`]: !isExpanded,
+              }))
+            }
+          >
+            {isExpanded ? "Read less" : "Read more"}
+          </button>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="p-4 space-y-4">
@@ -499,11 +537,14 @@ function LeadDetails({ lead }: { lead: Lead }) {
                 onClick={() =>
                   handleCopy(
                     [
-                      research.overview,
-                      research.pain_points.join("\n"),
-                      research.opportunities.join("\n"),
-                      research.talking_points.join("\n"),
-                    ].join("\n\n"),
+                      formattedOverview,
+                      ...researchSections.map(
+                        (section) =>
+                          `${section.title}:\n${section.items.join("\n")}`
+                      ),
+                    ]
+                      .filter(Boolean)
+                      .join("\n\n"),
                     "all"
                   )
                 }
@@ -532,7 +573,7 @@ function LeadDetails({ lead }: { lead: Lead }) {
                 ) : (
                   <>
                     <Sparkles className="mr-2 h-3 w-3" />
-                    {research ? "Refresh brief" : "Generate research"}
+                    {research ? "Regenerate brief" : "Generate research"}
                   </>
                 )}
               </Button>
@@ -579,12 +620,12 @@ function LeadDetails({ lead }: { lead: Lead }) {
         {research && (
           <div className="space-y-4">
             <div className="rounded-lg border border-border/60 bg-card p-5">
-              <p className="text-sm leading-[1.65] max-w-[72ch] text-foreground">
-                {research.overview}
+              <p className="text-sm leading-[1.65] max-w-[72ch] text-foreground whitespace-normal break-words">
+                {formattedOverview}
               </p>
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-3">
               {researchSections.map(
                 (section) =>
                   section.items.length > 0 && (
@@ -608,7 +649,7 @@ function LeadDetails({ lead }: { lead: Lead }) {
                         {section.items.map((item, i) => (
                           <li key={i} className="flex gap-2">
                             <span className={`mt-2 h-1.5 w-1.5 rounded-full ${section.bullet}`} />
-                            <span>{item}</span>
+                            <CollapsibleText text={item} sectionKey={section.key} />
                           </li>
                         ))}
                       </ul>
