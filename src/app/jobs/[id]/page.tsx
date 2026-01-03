@@ -207,6 +207,7 @@ export default function JobDetailPage() {
           <LeadsTable
             leads={leads}
             isLoading={job.status === "running"}
+            jobStatus={job.status}
           />
         </div>
         <div>

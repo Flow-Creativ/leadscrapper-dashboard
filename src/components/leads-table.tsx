@@ -39,9 +39,10 @@ import type { Lead } from "@/lib/types";
 interface LeadsTableProps {
   leads: Lead[];
   isLoading?: boolean;
+  jobStatus?: string; // "pending" | "running" | "completed" | "failed" | "cancelled"
 }
 
-export function LeadsTable({ leads, isLoading }: LeadsTableProps) {
+export function LeadsTable({ leads, isLoading, jobStatus }: LeadsTableProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (name: string, lead: Lead) => {
@@ -57,6 +58,9 @@ export function LeadsTable({ leads, isLoading }: LeadsTableProps) {
   };
 
   if (leads.length === 0 && !isLoading) {
+    // Show different message based on job status
+    const isInterrupted = jobStatus === "failed" || jobStatus === "cancelled";
+
     return (
       <Card>
         <CardHeader>
@@ -66,20 +70,31 @@ export function LeadsTable({ leads, isLoading }: LeadsTableProps) {
           <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center">
             <Search className="h-6 w-6 text-muted-foreground" />
           </div>
-          <div>
-            <h3 className="font-medium">No results found</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Google Maps didn&apos;t return any businesses for this query.
-            </p>
-          </div>
-          <div className="rounded-lg bg-muted/50 p-4 text-left text-sm max-w-md mx-auto">
-            <p className="font-medium mb-2">Tips for better results:</p>
-            <ul className="space-y-1 text-muted-foreground">
-              <li>• Use business categories: &quot;coffee shops&quot;, &quot;restaurants&quot;</li>
-              <li>• Add a location: &quot;in Jakarta&quot;, &quot;near Senopati&quot;</li>
-              <li>• Be specific: &quot;Japanese restaurants in Kemang&quot;</li>
-            </ul>
-          </div>
+          {isInterrupted ? (
+            <div>
+              <h3 className="font-medium">Job was interrupted</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Results couldn&apos;t be saved. Please retry the job.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div>
+                <h3 className="font-medium">No results found</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Google Maps didn&apos;t return any businesses for this query.
+                </p>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-4 text-left text-sm max-w-md mx-auto">
+                <p className="font-medium mb-2">Tips for better results:</p>
+                <ul className="space-y-1 text-muted-foreground">
+                  <li>• Use business categories: &quot;coffee shops&quot;, &quot;restaurants&quot;</li>
+                  <li>• Add a location: &quot;in Jakarta&quot;, &quot;near Senopati&quot;</li>
+                  <li>• Be specific: &quot;Japanese restaurants in Kemang&quot;</li>
+                </ul>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     );
