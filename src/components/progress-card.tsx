@@ -128,24 +128,33 @@ export function ProgressCard({
         )}
 
         {status === "completed" && summary && (
-          <div className="grid grid-cols-4 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold">{summary.total_leads}</div>
-              <div className="text-xs text-muted-foreground">Total</div>
+          summary.total_leads === 0 ? (
+            <div className="text-center space-y-2">
+              <div className="text-2xl font-bold text-muted-foreground">0</div>
+              <p className="text-sm text-muted-foreground">
+                No businesses found. Try a different query with a business category and location.
+              </p>
             </div>
-            <div>
-              <div className="text-2xl font-bold text-red-500">{summary.hot}</div>
-              <div className="text-xs text-muted-foreground">Hot</div>
+          ) : (
+            <div className="grid grid-cols-4 gap-4 text-center">
+              <div>
+                <div className="text-2xl font-bold">{summary.total_leads}</div>
+                <div className="text-xs text-muted-foreground">Total</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-red-500">{summary.hot}</div>
+                <div className="text-xs text-muted-foreground">Hot</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-yellow-500">{summary.warm}</div>
+                <div className="text-xs text-muted-foreground">Warm</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-blue-500">{summary.cold}</div>
+                <div className="text-xs text-muted-foreground">Cold</div>
+              </div>
             </div>
-            <div>
-              <div className="text-2xl font-bold text-yellow-500">{summary.warm}</div>
-              <div className="text-xs text-muted-foreground">Warm</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-blue-500">{summary.cold}</div>
-              <div className="text-xs text-muted-foreground">Cold</div>
-            </div>
-          </div>
+          )
         )}
 
         {error && (

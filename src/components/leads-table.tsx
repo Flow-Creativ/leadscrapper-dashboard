@@ -14,6 +14,7 @@ import {
   Instagram,
   Facebook,
   Linkedin,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,10 +61,26 @@ export function LeadsTable({ leads, isLoading }: LeadsTableProps) {
       <Card>
         <CardHeader>
           <CardTitle>Leads</CardTitle>
-          <CardDescription>
-            No leads found yet. Start a scrape to find leads.
-          </CardDescription>
         </CardHeader>
+        <CardContent className="py-8 text-center space-y-4">
+          <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+            <Search className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <div>
+            <h3 className="font-medium">No results found</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Google Maps didn&apos;t return any businesses for this query.
+            </p>
+          </div>
+          <div className="rounded-lg bg-muted/50 p-4 text-left text-sm max-w-md mx-auto">
+            <p className="font-medium mb-2">Tips for better results:</p>
+            <ul className="space-y-1 text-muted-foreground">
+              <li>• Use business categories: &quot;coffee shops&quot;, &quot;restaurants&quot;</li>
+              <li>• Add a location: &quot;in Jakarta&quot;, &quot;near Senopati&quot;</li>
+              <li>• Be specific: &quot;Japanese restaurants in Kemang&quot;</li>
+            </ul>
+          </div>
+        </CardContent>
       </Card>
     );
   }

@@ -81,12 +81,31 @@ export function ScrapeForm({
             <Label htmlFor="query">Search Query</Label>
             <Input
               id="query"
-              placeholder="e.g., coffee shops in Tokyo, restaurants in NYC"
+              placeholder="e.g., coffee shops in Jakarta"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               disabled={isFormDisabled}
               className="text-base"
             />
+            <p className="text-xs text-muted-foreground">
+              Use business categories + location for best results
+            </p>
+            {!query && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground">Try:</span>
+                {["coffee shops in Jakarta", "restaurants in Kemang", "salons near Sudirman"].map((example) => (
+                  <button
+                    key={example}
+                    type="button"
+                    onClick={() => setQuery(example)}
+                    className="text-xs px-2 py-1 rounded-full bg-muted hover:bg-muted/80 transition-colors"
+                    disabled={isFormDisabled}
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Quick Settings Row */}
