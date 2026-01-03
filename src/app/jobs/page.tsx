@@ -75,6 +75,10 @@ export default function JobsPage() {
 
   const hasCompletedJobs = jobs.some(j => j.status === "completed");
 
+  const handleJobDeleted = (jobId: string) => {
+    setJobs(jobs.filter(j => j.job_id !== jobId));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -145,7 +149,7 @@ export default function JobsPage() {
       ) : (
         <div className="grid gap-4">
           {jobs.map((job) => (
-            <JobCard key={job.job_id} job={job} />
+            <JobCard key={job.job_id} job={job} onJobDeleted={handleJobDeleted} />
           ))}
         </div>
       )}

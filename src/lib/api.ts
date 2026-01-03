@@ -75,6 +75,12 @@ export async function cancelJob(jobId: string): Promise<{ message: string; statu
   });
 }
 
+export async function deleteJob(jobId: string): Promise<{ message: string; status: string }> {
+  return apiFetch<{ message: string; status: string }>(`/api/jobs/${jobId}/delete`, {
+    method: "DELETE",
+  });
+}
+
 export async function exportJobLeads(
   jobId: string,
   format: "csv" | "json" = "csv"

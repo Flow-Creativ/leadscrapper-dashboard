@@ -14,6 +14,7 @@ import {
   Flame,
   Download,
   RotateCcw,
+  Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,18 +32,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { parseApiDate } from "@/lib/date-utils";
-import { exportJobLeads, startScrape } from "@/lib/api";
+import { exportJobLeads, startScrape, deleteJob } from "@/lib/api";
 import { trackNavigation, trackLeadExported } from "@/lib/firebase/analytics";
 import type { JobStatusResponse } from "@/lib/types";
 
 interface JobCardProps {
   job: JobStatusResponse;
+  onJobDeleted?: (jobId: string) => void;
 }
 
-export function JobCard({ job }: JobCardProps) {
+export function JobCard({ job, onJobDeleted }: JobCardProps) {
   const router = useRouter();
   const [isExporting, setIsExporting] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const StatusIcon = {
     pending: Loader2,
@@ -101,6 +104,22 @@ export function JobCard({ job }: JobCardProps) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this job? This cannot be undone.")) {
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await deleteJob(job.job_id);
+      toast.success("Job deleted");
+      onJobDeleted?.(job.job_id);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete job");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -147,19 +166,34 @@ export function JobCard({ job }: JobCardProps) {
           )}
           <div className="flex items-center gap-1">
             {(job.status === "failed" || job.status === "cancelled") && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRetry}
-                disabled={isRetrying}
-              >
-                {isRetrying ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RotateCcw className="h-4 w-4" />
-                )}
-                <span className="ml-1">Retry</span>
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRetry}
+                  disabled={isRetrying || isDeleting}
+                >
+                  {isRetrying ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RotateCcw className="h-4 w-4" />
+                  )}
+                  <span className="ml-1">Retry</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDelete}
+                  disabled={isDeleting || isRetrying}
+                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </>
             )}
             {job.status === "completed" && (
               <DropdownMenu>
