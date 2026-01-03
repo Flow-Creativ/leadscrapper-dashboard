@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Settings2, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Search, Settings2, Zap, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +16,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { trackScrapeStarted, trackButtonClick } from "@/lib/firebase/analytics";
-import type { ScrapeRequest } from "@/lib/types";
+import { enhanceQuery } from "@/lib/api";
+import type { ScrapeRequest, QueryEnhanceResponse } from "@/lib/types";
 
 interface ScrapeFormProps {
   onSubmit: (request: ScrapeRequest) => void;
@@ -39,8 +40,33 @@ export function ScrapeForm({
   const [skipOutreach, setSkipOutreach] = useState(false);
   const [productContext, setProductContext] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [queryWarning, setQueryWarning] = useState<QueryEnhanceResponse | null>(null);
+  const [isCheckingQuery, setIsCheckingQuery] = useState(false);
 
   const MAX_PRODUCT_CONTEXT_CHARS = 1000;
+
+  // Debounced query check for problematic queries
+  useEffect(() => {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery || trimmedQuery.length < 3) {
+      setQueryWarning(null);
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
+      setIsCheckingQuery(true);
+      try {
+        const result = await enhanceQuery(trimmedQuery);
+        setQueryWarning(result.is_problematic ? result : null);
+      } catch {
+        setQueryWarning(null);
+      } finally {
+        setIsCheckingQuery(false);
+      }
+    }, 800); // 800ms debounce
+
+    return () => clearTimeout(timeout);
+  }, [query]);
 
   // Count characters in product context
   const productContextChars = productContext.length;
@@ -104,6 +130,38 @@ export function ScrapeForm({
                     {example}
                   </button>
                 ))}
+              </div>
+            )}
+            {/* Query Warning */}
+            {queryWarning && (
+              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-900 dark:bg-yellow-950">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
+                  <div className="space-y-2">
+                    <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                      {queryWarning.message}
+                    </p>
+                    {queryWarning.suggestions.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-yellow-600 dark:text-yellow-500">Try instead:</span>
+                        {queryWarning.suggestions.map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            onClick={() => {
+                              setQuery(suggestion);
+                              setQueryWarning(null);
+                            }}
+                            className="text-xs px-2 py-1 rounded-full bg-yellow-100 hover:bg-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:hover:bg-yellow-800 dark:text-yellow-200 transition-colors"
+                            disabled={isFormDisabled}
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>

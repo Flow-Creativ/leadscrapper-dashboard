@@ -118,3 +118,11 @@ export type WsMessage =
   | WsErrorMessage
   | WsCompleteMessage
   | WsPingMessage;
+
+// Query Enhancement
+export interface QueryEnhanceResponse {
+  query_type: "company" | "category_no_location" | "good";
+  is_problematic: boolean;
+  message: string | null;
+  suggestions: string[];
+}

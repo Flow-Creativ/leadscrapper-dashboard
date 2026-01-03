@@ -7,6 +7,7 @@ import type {
   JobStatusResponse,
   JobListResponse,
   Lead,
+  QueryEnhanceResponse,
 } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -143,6 +144,23 @@ export async function getDemoLeads(): Promise<Lead[]> {
 export function getWebSocketUrl(jobId: string): string {
   const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
   return `${wsUrl}/ws/${jobId}`;
+}
+
+export async function enhanceQuery(query: string): Promise<QueryEnhanceResponse> {
+  try {
+    return await apiFetch<QueryEnhanceResponse>("/api/query/enhance", {
+      method: "POST",
+      body: JSON.stringify({ query }),
+    });
+  } catch {
+    // Fallback: don't block on error
+    return {
+      query_type: "good",
+      is_problematic: false,
+      message: null,
+      suggestions: [],
+    };
+  }
 }
 
 // Export getAuthToken for WebSocket auth
