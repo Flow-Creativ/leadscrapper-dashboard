@@ -1,12 +1,14 @@
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 interface TierBadgeProps {
   tier: "hot" | "warm" | "cold";
   className?: string;
+  isProcessing?: boolean;
 }
 
-export function TierBadge({ tier, className }: TierBadgeProps) {
+export function TierBadge({ tier, className, isProcessing }: TierBadgeProps) {
   return (
     <Badge
       className={cn(
@@ -17,6 +19,9 @@ export function TierBadge({ tier, className }: TierBadgeProps) {
         className
       )}
     >
+      {isProcessing && (
+        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+      )}
       {tier.toUpperCase()}
     </Badge>
   );

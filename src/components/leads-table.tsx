@@ -34,15 +34,37 @@ import {
 } from "@/components/ui/card";
 import { TierBadge } from "./tier-badge";
 import { trackLeadViewed, trackOutreachCopied, trackContactAction, trackExternalLinkClick } from "@/lib/firebase/analytics";
-import type { Lead } from "@/lib/types";
+import type { Lead, JobProgress } from "@/lib/types";
 
 interface LeadsTableProps {
   leads: Lead[];
   isLoading?: boolean;
   jobStatus?: string; // "pending" | "running" | "completed" | "failed" | "cancelled"
+  jobProgress?: JobProgress | null;
 }
 
-export function LeadsTable({ leads, isLoading, jobStatus }: LeadsTableProps) {
+/**
+ * Determine if a lead is still being processed.
+ * A lead is processing if job is running and outreach hasn't been generated yet.
+ */
+function isLeadProcessing(
+  lead: Lead,
+  jobStatus: string | undefined,
+  jobProgress: JobProgress | null | undefined
+): boolean {
+  // Only show processing state when job is running
+  if (jobStatus !== "running") return false;
+
+  // Lead is processing if it doesn't have outreach yet
+  // (outreach is the final step, so no outreach = still processing)
+  if (!lead.outreach) {
+    return true;
+  }
+
+  return false;
+}
+
+export function LeadsTable({ leads, isLoading, jobStatus, jobProgress }: LeadsTableProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (name: string, lead: Lead) => {
@@ -164,7 +186,10 @@ export function LeadsTable({ leads, isLoading, jobStatus }: LeadsTableProps) {
                       {lead.score.toFixed(0)}
                     </TableCell>
                     <TableCell className="text-center">
-                      <TierBadge tier={lead.tier} />
+                      <TierBadge
+                        tier={lead.tier}
+                        isProcessing={isLeadProcessing(lead, jobStatus, jobProgress)}
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

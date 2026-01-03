@@ -208,6 +208,7 @@ export default function JobDetailPage() {
             leads={leads}
             isLoading={job.status === "running"}
             jobStatus={job.status}
+            jobProgress={job.progress}
           />
         </div>
         <div>
