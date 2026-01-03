@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, XCircle, Clock, CheckCircle2, RotateCcw } from "lucide-react";
+import { Loader2, XCircle, Clock, CheckCircle2, RotateCcw, AlertCircle, ExternalLink } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -129,30 +130,86 @@ export function ProgressCard({
 
         {status === "completed" && summary && (
           summary.total_leads === 0 ? (
-            <div className="text-center space-y-2">
-              <div className="text-2xl font-bold text-muted-foreground">0</div>
-              <p className="text-sm text-muted-foreground">
-                No businesses found. Try a different query with a business category and location.
-              </p>
-            </div>
+            // Check if all leads were duplicates
+            summary.duplicates_skipped && summary.duplicates_skipped > 0 ? (
+              <div className="space-y-4">
+                <div className="rounded-lg bg-amber-50 p-4 dark:bg-amber-950">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <div className="space-y-1">
+                      <p className="font-medium text-amber-800 dark:text-amber-200">
+                        All leads already exist
+                      </p>
+                      <p className="text-sm text-amber-700 dark:text-amber-300">
+                        Found {summary.total_scraped} businesses, but {summary.duplicates_skipped} were already in your previous jobs.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {summary.duplicate_jobs && summary.duplicate_jobs.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">View existing leads in:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {summary.duplicate_jobs.map((jobId) => (
+                        <Link key={jobId} href={`/jobs/${jobId}`}>
+                          <Button variant="outline" size="sm" className="gap-1">
+                            Job {jobId.slice(0, 8)}
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center space-y-2">
+                <div className="text-2xl font-bold text-muted-foreground">0</div>
+                <p className="text-sm text-muted-foreground">
+                  No businesses found. Try a different query with a business category and location.
+                </p>
+              </div>
+            )
           ) : (
-            <div className="grid grid-cols-4 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold">{summary.total_leads}</div>
-                <div className="text-xs text-muted-foreground">Total</div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-4 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold">{summary.total_leads}</div>
+                  <div className="text-xs text-muted-foreground">New</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-red-500">{summary.hot}</div>
+                  <div className="text-xs text-muted-foreground">Hot</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-yellow-500">{summary.warm}</div>
+                  <div className="text-xs text-muted-foreground">Warm</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-blue-500">{summary.cold}</div>
+                  <div className="text-xs text-muted-foreground">Cold</div>
+                </div>
               </div>
-              <div>
-                <div className="text-2xl font-bold text-red-500">{summary.hot}</div>
-                <div className="text-xs text-muted-foreground">Hot</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-yellow-500">{summary.warm}</div>
-                <div className="text-xs text-muted-foreground">Warm</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-blue-500">{summary.cold}</div>
-                <div className="text-xs text-muted-foreground">Cold</div>
-              </div>
+              {/* Show deduplication info if any leads were skipped */}
+              {summary.duplicates_skipped && summary.duplicates_skipped > 0 && (
+                <div className="rounded-lg bg-muted/50 p-3 space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    {summary.duplicates_skipped} duplicate{summary.duplicates_skipped > 1 ? "s" : ""} skipped from previous jobs
+                  </p>
+                  {summary.duplicate_jobs && summary.duplicate_jobs.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {summary.duplicate_jobs.map((jobId) => (
+                        <Link key={jobId} href={`/jobs/${jobId}`}>
+                          <Button variant="ghost" size="sm" className="h-6 text-xs gap-1">
+                            {jobId.slice(0, 8)}
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )
         )}

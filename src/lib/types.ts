@@ -28,6 +28,10 @@ export interface JobSummary {
   warm: number;
   cold: number;
   duration_seconds: number | null;
+  // Deduplication info
+  total_scraped?: number;
+  duplicates_skipped?: number;
+  duplicate_jobs?: string[];
 }
 
 export type JobStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
