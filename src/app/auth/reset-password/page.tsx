@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import Link from "next/link";
-import { MapPin, Loader2, Mail, Lock, AlertCircle, CheckCircle2, Check, X } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { MapPin, Loader2, Lock, AlertCircle, CheckCircle2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,20 +15,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import { trackSignUp } from "@/lib/firebase/analytics";
 
 interface PasswordRequirement {
   label: string;
   met: boolean;
 }
 
-export default function SignUpPage() {
-  const [email, setEmail] = useState("");
+export default function ResetPasswordPage() {
+  const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [isValidSession, setIsValidSession] = useState<boolean | null>(null);
 
   const passwordRequirements: PasswordRequirement[] = useMemo(() => [
     { label: "At least 8 characters", met: password.length >= 8 },
@@ -39,6 +38,16 @@ export default function SignUpPage() {
 
   const allRequirementsMet = passwordRequirements.every(req => req.met);
   const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
+
+  useEffect(() => {
+    // Check if user has a valid session from the reset link
+    const checkSession = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsValidSession(!!session);
+    };
+    checkSession();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,25 +68,18 @@ export default function SignUpPage() {
 
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/auth/verify-success`,
-        },
+      const { error } = await supabase.auth.updateUser({
+        password: password,
       });
 
       if (error) {
-        if (error.message.includes("already registered")) {
-          setError("This email is already registered. Please sign in instead.");
-        } else {
-          setError(error.message);
-        }
+        setError(error.message);
         return;
       }
 
-      trackSignUp("email");
-      setSuccess(true);
+      // Sign out and redirect to sign in
+      await supabase.auth.signOut();
+      router.push("/auth/signin?message=password_updated");
     } catch {
       setError("An unexpected error occurred. Please try again.");
     } finally {
@@ -85,40 +87,34 @@ export default function SignUpPage() {
     }
   };
 
-  if (success) {
+  if (isValidSession === null) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!isValidSession) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center px-4">
         <Card className="w-full max-w-md shadow-lg">
           <CardHeader className="space-y-1 pb-6">
             <div className="flex items-center justify-center mb-6">
-              <div className="p-4 bg-green-100 rounded-full dark:bg-green-900">
-                <Mail className="h-8 w-8 text-green-600 dark:text-green-400" />
+              <div className="p-4 bg-red-100 rounded-full dark:bg-red-900">
+                <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
               </div>
             </div>
             <CardTitle className="text-2xl text-center font-bold">
-              Check your email
+              Invalid or Expired Link
             </CardTitle>
             <CardDescription className="text-center text-base">
-              We&apos;ve sent a verification link to
-              <br />
-              <span className="font-medium text-foreground">{email}</span>
+              This password reset link is invalid or has expired. Please request a new one.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
-              <p className="mb-2">
-                Click the link in the email to verify your account. If you don&apos;t see it, check your spam folder.
-              </p>
-              <p>
-                The link will expire in 24 hours.
-              </p>
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-3">
-            <Button variant="outline" className="w-full" asChild>
-              <Link href="/auth/signin">
-                Back to Sign In
-              </Link>
+          <CardFooter>
+            <Button className="w-full" onClick={() => router.push("/auth/forgot-password")}>
+              Request New Link
             </Button>
           </CardFooter>
         </Card>
@@ -127,7 +123,7 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-8">
+    <div className="min-h-[80vh] flex items-center justify-center px-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1 pb-6">
           <div className="flex items-center justify-center gap-2 mb-6">
@@ -136,10 +132,10 @@ export default function SignUpPage() {
             </div>
           </div>
           <CardTitle className="text-2xl text-center font-bold">
-            Create your account
+            Set new password
           </CardTitle>
           <CardDescription className="text-center">
-            Start finding quality leads in minutes
+            Enter your new password below
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -151,29 +147,13 @@ export default function SignUpPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={isLoading}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">New Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Create a password"
+                  placeholder="Enter new password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -202,13 +182,13 @@ export default function SignUpPage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="confirmPassword"
                   type="password"
-                  placeholder="Confirm your password"
+                  placeholder="Confirm new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
@@ -233,24 +213,15 @@ export default function SignUpPage() {
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4 pt-2">
+          <CardFooter className="pt-2">
             <Button
               type="submit"
               className="w-full"
               disabled={isLoading || !allRequirementsMet || !passwordsMatch}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Account
+              Update Password
             </Button>
-            <p className="text-sm text-muted-foreground text-center">
-              Already have an account?{" "}
-              <Link
-                href="/auth/signin"
-                className="text-primary font-medium hover:underline"
-              >
-                Sign in
-              </Link>
-            </p>
           </CardFooter>
         </form>
       </Card>
