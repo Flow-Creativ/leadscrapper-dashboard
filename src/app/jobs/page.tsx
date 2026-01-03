@@ -1,25 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCw, Plus, Download, Loader2 } from "lucide-react";
+import { RefreshCw, Plus } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { JobCard } from "@/components/job-card";
-import { listJobs, bulkExportLeads } from "@/lib/api";
-import { trackJobListViewed, trackLeadExported } from "@/lib/firebase/analytics";
+import { listJobs } from "@/lib/api";
+import { trackJobListViewed } from "@/lib/firebase/analytics";
 import type { JobStatusResponse } from "@/lib/types";
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<JobStatusResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchJobs = async () => {
@@ -36,30 +29,6 @@ export default function JobsPage() {
     }
   };
 
-  const handleBulkExport = async (format: "csv" | "json") => {
-    setIsExporting(true);
-    try {
-      const blob = await bulkExportLeads(format);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `all_leads_export.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      const completedJobs = jobs.filter(j => j.status === "completed");
-      const totalLeads = completedJobs.reduce((sum, j) => sum + (j.summary?.total_leads || 0), 0);
-      toast.success(`Exported ${totalLeads} leads as ${format.toUpperCase()}`);
-      trackLeadExported(format, totalLeads);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Export failed");
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   useEffect(() => {
     fetchJobs();
 
@@ -72,8 +41,6 @@ export default function JobsPage() {
 
     return () => clearInterval(interval);
   }, []);
-
-  const hasCompletedJobs = jobs.some(j => j.status === "completed");
 
   const handleJobDeleted = (jobId: string) => {
     setJobs(jobs.filter(j => j.job_id !== jobId));
@@ -89,28 +56,6 @@ export default function JobsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {hasCompletedJobs && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" disabled={isExporting}>
-                  {isExporting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="mr-2 h-4 w-4" />
-                  )}
-                  Export All
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleBulkExport("csv")}>
-                  All Leads (CSV)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleBulkExport("json")}>
-                  All Leads (JSON)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
           <Button variant="outline" onClick={fetchJobs} disabled={isLoading}>
             <RefreshCw
               className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
