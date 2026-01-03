@@ -29,10 +29,12 @@ export function showRateLimitToast(retryAfter: number | null = 60): void {
 
 /**
  * Show an account restricted toast (banned).
+ * @param message Optional custom message from the API (includes retry time)
  */
-export function showBannedToast(): void {
+export function showBannedToast(message?: string): void {
   toast.error("Account Temporarily Restricted", {
     description:
+      message ||
       "Your account has been temporarily restricted due to excessive requests. Please try again later.",
     duration: 10000,
   });
@@ -63,7 +65,7 @@ export function handleApiError(error: unknown): {
         return { type: "rate_limit", message: error.message };
 
       case "banned":
-        showBannedToast();
+        showBannedToast(error.message);
         return { type: "banned", message: error.message };
 
       case "unauthorized":

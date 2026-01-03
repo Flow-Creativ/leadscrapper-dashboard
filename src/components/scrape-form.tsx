@@ -110,7 +110,7 @@ export function ScrapeForm({
         if (error.isBanned) {
           setFormError({
             type: "banned",
-            message: "Your account has been temporarily restricted. Please try again later.",
+            message: error.message || "Your account has been temporarily restricted. Please try again later.",
           });
           handleApiError(error); // Show toast
           onBanned?.(); // Notify parent
