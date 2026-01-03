@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Search, Settings2, Zap, Loader2, AlertCircle, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,7 +62,7 @@ export function ScrapeForm({
   // Duplicate query check state
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [duplicateCheck, setDuplicateCheck] = useState<DuplicateCheckResponse | null>(null);
-  const [skipDuplicateCheck, setSkipDuplicateCheck] = useState(false);
+  const skipDuplicateCheckRef = useRef(false);
 
   const MAX_PRODUCT_CONTEXT_CHARS = 1000;
   const productContextChars = productContext.length;
@@ -91,7 +91,7 @@ export function ScrapeForm({
 
     try {
       // Step 1: Check for duplicate queries (unless bypassed)
-      if (!skipDuplicateCheck) {
+      if (!skipDuplicateCheckRef.current) {
         const dupResult = await checkDuplicateQuery(query.trim());
         if (dupResult.has_duplicates) {
           setDuplicateCheck(dupResult);
@@ -101,7 +101,7 @@ export function ScrapeForm({
         }
       }
       // Reset the skip flag after use
-      setSkipDuplicateCheck(false);
+      skipDuplicateCheckRef.current = false;
 
       // Step 2: Check query quality (existing enhancement check)
       const result = await enhanceQuery(query.trim());
@@ -168,7 +168,7 @@ export function ScrapeForm({
   // Handlers for duplicate query modal
   const handleProceedWithDuplicate = () => {
     setShowDuplicateModal(false);
-    setSkipDuplicateCheck(true);
+    skipDuplicateCheckRef.current = true;
     // Re-trigger submit, skipping duplicate check this time
     const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
     handleSubmit(fakeEvent);
