@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { History, LogIn } from "lucide-react";
+import { History, LogIn, Sparkles, Target, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrapeForm } from "@/components/scrape-form";
 import { ActiveJobCard } from "@/components/active-job-card";
@@ -51,9 +51,11 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Scrape Google Maps for business leads
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Discover high-quality business leads from Google Maps
           </p>
         </div>
         {user && (
@@ -115,17 +117,59 @@ export default function Dashboard() {
 
       {/* Demo Section for Unauthenticated Users */}
       {!user && demoLeads.length > 0 && (
-        <section className="space-y-4">
-          <div className="rounded-lg border bg-gradient-to-r from-primary/5 to-primary/10 p-6">
-            <h2 className="text-lg font-semibold">Sample Results</h2>
+        <section className="space-y-6">
+          {/* Feature Highlights */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="flex items-start gap-3 rounded-lg border bg-card p-4">
+              <div className="rounded-full bg-primary/10 p-2">
+                <Target className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-medium">Find Quality Leads</h3>
+                <p className="text-sm text-muted-foreground">
+                  AI-powered scoring to identify your best prospects
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 rounded-lg border bg-card p-4">
+              <div className="rounded-full bg-primary/10 p-2">
+                <Zap className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-medium">Fast Enrichment</h3>
+                <p className="text-sm text-muted-foreground">
+                  Get emails, phone numbers, and social profiles
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 rounded-lg border bg-card p-4">
+              <div className="rounded-full bg-primary/10 p-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-medium">AI Outreach</h3>
+                <p className="text-sm text-muted-foreground">
+                  Generate personalized outreach messages
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Sample Results */}
+          <div className="relative rounded-xl border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 via-background to-primary/5 p-6">
+            <div className="absolute -top-3 left-6">
+              <span className="bg-background px-2 text-sm font-medium text-primary">
+                Sample Results
+              </span>
+            </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Here&apos;s what you can discover. Sign in to start your own scrape!
+              Here&apos;s a preview of the leads you can discover. Sign in to start your own scrape!
             </p>
-            <div className="bg-background rounded-lg border">
+            <div className="bg-background rounded-lg border shadow-sm">
               <LeadsTable leads={demoLeads} isLoading={false} />
             </div>
-            <div className="mt-4 flex justify-center">
-              <Button asChild>
+            <div className="mt-6 flex justify-center">
+              <Button size="lg" asChild className="shadow-lg">
                 <Link href="/auth/signin">
                   <LogIn className="mr-2 h-4 w-4" />
                   Sign in to get started
@@ -138,9 +182,13 @@ export default function Dashboard() {
 
       {/* Empty State for Authenticated Users */}
       {user && activeJobs.length === 0 && recentJobs.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">
-            No jobs yet. Start your first scrape above!
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="rounded-full bg-muted p-4 mb-4">
+            <Target className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-medium mb-2">No jobs yet</h3>
+          <p className="text-muted-foreground max-w-sm">
+            Enter a search query above to start discovering high-quality business leads from Google Maps.
           </p>
         </div>
       )}
