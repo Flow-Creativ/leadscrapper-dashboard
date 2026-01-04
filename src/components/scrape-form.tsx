@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Search, Settings2, Zap, Loader2, AlertCircle, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import { enhanceQuery, checkDuplicateQuery } from "@/lib/api";
 import { handleApiError, isRateLimitError, isBannedError } from "@/lib/error-handler";
 import type { ScrapeRequest, QueryEnhanceResponse, DuplicateCheckResponse } from "@/lib/types";
 import { ApiError } from "@/lib/types";
+import { getRandomExamples } from "@/constants/search-examples";
 
 interface ScrapeFormProps {
   onSubmit: (request: ScrapeRequest) => void;
@@ -68,6 +69,15 @@ export function ScrapeForm({
   const productContextChars = productContext.length;
   const isOverCharLimit = productContextChars > MAX_PRODUCT_CONTEXT_CHARS;
   const isFormDisabled = isLoading || disabled || isChecking;
+
+  // Track if component is mounted (client-side only)
+  const [isMounted, setIsMounted] = useState(false);
+  const [exampleQueries] = useState(() => getRandomExamples(3));
+
+  // Set mounted flag after hydration to avoid SSR mismatch
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const submitScrape = () => {
     trackScrapeStarted(query.trim(), maxResults);
@@ -207,10 +217,10 @@ export function ScrapeForm({
               <p className="text-xs text-muted-foreground">
                 Use business categories + location for best results
               </p>
-              {!query && (
+              {!query && isMounted && (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs text-muted-foreground">Try:</span>
-                  {["coffee shops in Jakarta", "restaurants in Kemang", "salons near Sudirman"].map((example) => (
+                  {exampleQueries.map((example) => (
                     <button
                       key={example}
                       type="button"

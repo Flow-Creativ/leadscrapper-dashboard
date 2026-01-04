@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ProgressCard } from "@/components/progress-card";
 import { LeadsTable } from "@/components/leads-table";
-import { getJobStatus, getJobLeads, exportJobLeads, startScrape, getStreamUrl } from "@/lib/api";
+import { getJobStatus, getJobLeads, exportJobLeads, startScrape, getStreamUrl, resumeJob, cancelJob } from "@/lib/api";
 import { trackJobDetailViewed, trackLeadExported } from "@/lib/firebase/analytics";
 import type { JobStatusResponse, Lead, SSEMessage } from "@/lib/types";
 
@@ -23,6 +23,7 @@ export default function JobDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // SSE refs for smart fallback
@@ -53,22 +54,79 @@ export default function JobDetailPage() {
     }
   };
 
-  const handleRetry = async () => {
+  const handleCancel = async () => {
+    // Only cancel if job is running or pending
+    if (job?.status !== "running" && job?.status !== "pending") {
+      return;
+    }
+    setIsCancelling(true);
+    try {
+      await cancelJob(jobId);
+      toast.success("Job cancelled");
+      // Update local state immediately
+      setJob((prev) => prev ? { ...prev, status: "cancelled" } : prev);
+      // Close SSE connection
+      if (esRef.current) {
+        esRef.current.close();
+        esRef.current = null;
+      }
+    } catch (err) {
+      // Ignore "already cancelled" errors
+      const message = err instanceof Error ? err.message : "";
+      if (!message.includes("Cannot cancel")) {
+        toast.error(message || "Failed to cancel job");
+      }
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  // Determine if job can be resumed (failed/cancelled with leads) vs needs retry (no leads)
+  const canResume = (job?.status === "failed" || job?.status === "cancelled") && leads.length > 0;
+
+  // Calculate tier counts from actual leads (fallback for incorrect summary)
+  const tierCounts = leads.reduce(
+    (acc, lead) => {
+      const tier = lead.tier?.toLowerCase();
+      if (tier === "hot") acc.hot++;
+      else if (tier === "warm") acc.warm++;
+      else acc.cold++;
+      return acc;
+    },
+    { hot: 0, warm: 0, cold: 0 }
+  );
+
+  const handleRetryOrResume = async () => {
     if (!job) return;
     setIsRetrying(true);
     try {
-      const result = await startScrape({
-        query: job.query,
-        max_results: job.max_results ?? undefined,
-        min_score: job.min_score ?? undefined,
-        skip_enrichment: job.skip_enrichment ?? undefined,
-        skip_outreach: job.skip_outreach ?? undefined,
-        product_context: job.product_context ?? undefined,
-      });
-      toast.success("Job restarted");
-      router.push(`/jobs/${result.job_id}`);
+      if (canResume) {
+        // Resume: continue from where we left off
+        await resumeJob(jobId);
+        toast.success(`Job resumed - continuing with ${leads.length} existing leads`);
+        // Stay on same page, SSE will update progress
+        // Reset state for resumed job
+        setError(null);
+        sseFailedRef.current = false;
+        // Re-fetch to get current job status and existing leads
+        await fetchData();
+        // Reconnect SSE for updates
+        connectSSE();
+      } else {
+        // Retry: create new job with same parameters
+        const result = await startScrape({
+          query: job.query,
+          max_results: job.max_results ?? undefined,
+          min_score: job.min_score ?? undefined,
+          skip_enrichment: job.skip_enrichment ?? undefined,
+          skip_outreach: job.skip_outreach ?? undefined,
+          product_context: job.product_context ?? undefined,
+        });
+        toast.success("Job restarted");
+        router.push(`/jobs/${result.job_id}`);
+      }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to retry job");
+      toast.error(err instanceof Error ? err.message : `Failed to ${canResume ? "resume" : "retry"} job`);
     } finally {
       setIsRetrying(false);
     }
@@ -118,6 +176,11 @@ export default function JobDetailPage() {
     eventTypes.forEach((eventType) => {
       es.addEventListener(eventType, (event) => {
         try {
+          // Safety check for undefined or invalid data
+          if (!event.data || event.data === "undefined") {
+            console.warn("SSE received invalid data:", eventType, event.data);
+            return;
+          }
           const data = JSON.parse(event.data) as SSEMessage;
 
           switch (eventType) {
@@ -140,7 +203,15 @@ export default function JobDetailPage() {
 
             case "lead":
               if (data.data) {
-                setLeads((prev) => [...prev, data.data as Lead]);
+                const newLead = data.data as Lead;
+                setLeads((prev) => {
+                  // Deduplicate by place_id to avoid showing same lead twice
+                  const exists = prev.some((lead) => lead.place_id === newLead.place_id);
+                  if (exists) {
+                    return prev;
+                  }
+                  return [...prev, newLead];
+                });
               }
               break;
 
@@ -303,13 +374,13 @@ export default function JobDetailPage() {
           {(job.status === "failed" || job.status === "cancelled") && (
             <Button
               variant="outline"
-              onClick={handleRetry}
+              onClick={handleRetryOrResume}
               disabled={isRetrying}
             >
               <RotateCcw
                 className={`mr-2 h-4 w-4 ${isRetrying ? "animate-spin" : ""}`}
               />
-              Retry
+              {canResume ? "Resume" : "Retry"}
             </Button>
           )}
           <Button variant="outline" onClick={fetchData} disabled={isLoading}>
@@ -357,9 +428,13 @@ export default function JobDetailPage() {
             summary={job.summary}
             error={job.error}
             startedAt={job.started_at}
-            onCancel={() => {}}
-            onRetry={handleRetry}
+            onCancel={handleCancel}
+            isCancelling={isCancelling}
+            onRetry={handleRetryOrResume}
             isRetrying={isRetrying}
+            canResume={canResume}
+            leadCount={leads.length}
+            tierCounts={tierCounts}
           />
         </div>
       </div>

@@ -91,6 +91,22 @@ export async function deleteJob(jobId: string): Promise<{ message: string; statu
   });
 }
 
+export async function resumeJob(jobId: string): Promise<{
+  message: string;
+  status: string;
+  skip_leads: number;
+  stream_url: string;
+}> {
+  return apiFetch<{
+    message: string;
+    status: string;
+    skip_leads: number;
+    stream_url: string;
+  }>(`/api/jobs/${jobId}/resume`, {
+    method: "POST",
+  });
+}
+
 export async function exportJobLeads(
   jobId: string,
   format: "csv" | "json" = "csv"
