@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, RefreshCw, Download, RotateCcw } from "lucide-react";
 import Link from "next/link";
@@ -8,9 +8,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ProgressCard } from "@/components/progress-card";
 import { LeadsTable } from "@/components/leads-table";
-import { getJobStatus, getJobLeads, exportJobLeads, startScrape } from "@/lib/api";
+import { getJobStatus, getJobLeads, exportJobLeads, startScrape, getStreamUrl } from "@/lib/api";
 import { trackJobDetailViewed, trackLeadExported } from "@/lib/firebase/analytics";
-import type { JobStatusResponse, Lead } from "@/lib/types";
+import type { JobStatusResponse, Lead, SSEMessage } from "@/lib/types";
 
 export default function JobDetailPage() {
   const params = useParams();
@@ -24,6 +24,13 @@ export default function JobDetailPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // SSE refs for smart fallback
+  const esRef = useRef<EventSource | null>(null);
+  const sseFailedRef = useRef(false);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const POLLING_INTERVAL = 5000; // 5s fallback polling
 
   const handleExport = async (format: "csv" | "json") => {
     setIsExporting(true);
@@ -95,18 +102,150 @@ export default function JobDetailPage() {
     fetchData();
   }, [jobId]);
 
-  // Auto-refresh for running jobs
+  // SSE connection for real-time updates
+  const connectSSE = useCallback(async () => {
+    // Close existing connection
+    if (esRef.current) {
+      esRef.current.close();
+    }
+
+    const url = await getStreamUrl(jobId);
+    const es = new EventSource(url);
+    esRef.current = es;
+
+    const eventTypes = ["status", "lead", "lead_update", "error", "complete"];
+
+    eventTypes.forEach((eventType) => {
+      es.addEventListener(eventType, (event) => {
+        try {
+          const data = JSON.parse(event.data) as SSEMessage;
+
+          switch (eventType) {
+            case "status":
+              setJob((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      status: "running",
+                      progress: {
+                        step: data.step || "",
+                        current: data.current || 0,
+                        total: data.total || 0,
+                        message: data.message || null,
+                      },
+                    }
+                  : prev
+              );
+              break;
+
+            case "lead":
+              if (data.data) {
+                setLeads((prev) => [...prev, data.data as Lead]);
+              }
+              break;
+
+            case "lead_update":
+              if (data.data) {
+                const updatedLead = data.data as Lead;
+                setLeads((prev) =>
+                  prev.map((lead) =>
+                    lead.place_id === updatedLead.place_id ? updatedLead : lead
+                  )
+                );
+              }
+              break;
+
+            case "error":
+              if (!data.recoverable) {
+                setJob((prev) =>
+                  prev ? { ...prev, status: "failed", error: data.message || null } : prev
+                );
+              }
+              break;
+
+            case "complete":
+              setJob((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      status: "completed",
+                      summary: data.summary || prev.summary,
+                    }
+                  : prev
+              );
+              break;
+          }
+
+          // Close connection on terminal events
+          if (eventType === "complete" || (eventType === "error" && !data.recoverable)) {
+            es.close();
+            esRef.current = null;
+          }
+        } catch (err) {
+          console.error("Failed to parse SSE message:", err);
+        }
+      });
+    });
+
+    es.onopen = () => {
+      // SSE connected - stop fallback polling
+      sseFailedRef.current = false;
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+
+    es.onerror = () => {
+      if (es.readyState === EventSource.CLOSED) {
+        // SSE permanently failed - enable fallback polling
+        sseFailedRef.current = true;
+        console.warn("SSE connection closed for job:", jobId, "- falling back to polling");
+        esRef.current = null;
+      }
+    };
+  }, [jobId]);
+
+  // SSE + smart fallback polling for running jobs
   useEffect(() => {
-    if (job?.status !== "running" && job?.status !== "pending") {
+    const isRunning = job?.status === "running" || job?.status === "pending";
+
+    if (!isRunning) {
+      // Clean up on terminal status
+      if (esRef.current) {
+        esRef.current.close();
+        esRef.current = null;
+      }
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
       return;
     }
 
-    const interval = setInterval(() => {
-      fetchData();
-    }, 3000); // Poll every 3 seconds for running jobs
+    // Connect SSE for running jobs
+    connectSSE();
 
-    return () => clearInterval(interval);
-  }, [jobId, job?.status]);
+    // Smart fallback polling - only poll when SSE fails
+    pollingIntervalRef.current = setInterval(() => {
+      if (!sseFailedRef.current) {
+        return; // SSE is working, skip polling
+      }
+      console.log("Fallback polling for job:", jobId);
+      fetchData();
+    }, POLLING_INTERVAL);
+
+    return () => {
+      if (esRef.current) {
+        esRef.current.close();
+        esRef.current = null;
+      }
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [jobId, job?.status, connectSSE]);
 
   if (isLoading && !job) {
     return (

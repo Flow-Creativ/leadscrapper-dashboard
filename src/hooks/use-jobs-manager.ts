@@ -2,21 +2,20 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { startScrape, getWebSocketUrl, cancelJob, listJobs, getJobLeads, getAuthToken } from "@/lib/api";
+import { startScrape, getStreamUrl, cancelJob, listJobs, getJobLeads, getAuthToken } from "@/lib/api";
 import type {
   ScrapeRequest,
   JobProgress,
   JobSummary,
   Lead,
-  WsMessage,
   JobStatus,
   JobStatusResponse,
+  SSEMessage,
 } from "@/lib/types";
 
 const MAX_CONCURRENT_JOBS = parseInt(process.env.NEXT_PUBLIC_MAX_CONCURRENT_JOBS || "1", 10);
 const MAX_RECENT_JOBS = 5;
-const RECONNECT_DELAY = 2000;
-const MAX_RECONNECT_ATTEMPTS = 3;
+const POLLING_INTERVAL = 10000; // Fallback polling every 10s
 
 export interface JobState {
   jobId: string;
@@ -27,11 +26,6 @@ export interface JobState {
   summary: JobSummary | null;
   error: string | null;
   startedAt: Date;
-}
-
-interface WebSocketConnection {
-  ws: WebSocket;
-  reconnectAttempts: number;
 }
 
 interface UseJobsManagerReturn {
@@ -53,11 +47,12 @@ export function useJobsManager(): UseJobsManagerReturn {
   const [isStarting, setIsStarting] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  const wsConnections = useRef<Map<string, WebSocketConnection>>(new Map());
-  const reconnectTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  const connectWebSocketRef = useRef<((jobId: string, query: string) => void) | null>(null);
+  // SSE connections
+  const sseConnections = useRef<Map<string, EventSource>>(new Map());
   const jobsRef = useRef<Map<string, JobState>>(new Map());
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Track jobs where SSE has failed (for smart fallback polling)
+  const sseFailedJobs = useRef<Set<string>>(new Set());
 
   // Keep jobsRef in sync with jobs state
   useEffect(() => {
@@ -90,10 +85,7 @@ export function useJobsManager(): UseJobsManagerReturn {
             setRecentJobs((prevRecent) => {
               // Filter out any existing job with same ID to prevent duplicates
               const filtered = prevRecent.filter((j) => j.jobId !== jobId);
-              const newRecent = [updatedJob, ...filtered].slice(
-                0,
-                MAX_RECENT_JOBS
-              );
+              const newRecent = [updatedJob, ...filtered].slice(0, MAX_RECENT_JOBS);
               return newRecent;
             });
           } else {
@@ -106,18 +98,18 @@ export function useJobsManager(): UseJobsManagerReturn {
     []
   );
 
-  // Handle WebSocket messages for a specific job
-  const handleMessage = useCallback(
-    (jobId: string, message: WsMessage) => {
-      switch (message.type) {
+  // Handle SSE message for a specific job
+  const handleSSEMessage = useCallback(
+    (jobId: string, eventType: string, data: SSEMessage) => {
+      switch (eventType) {
         case "status":
           updateJob(jobId, {
             status: "running",
             progress: {
-              step: message.step,
-              current: message.current,
-              total: message.total,
-              message: message.message,
+              step: data.step || "",
+              current: data.current || 0,
+              total: data.total || 0,
+              message: data.message || null,
             },
           });
           break;
@@ -126,11 +118,27 @@ export function useJobsManager(): UseJobsManagerReturn {
           setJobs((prev) => {
             const newMap = new Map(prev);
             const job = newMap.get(jobId);
-            if (job) {
+            if (job && data.data) {
               newMap.set(jobId, {
                 ...job,
-                leads: [...job.leads, message.data],
+                leads: [...job.leads, data.data as Lead],
               });
+            }
+            return newMap;
+          });
+          break;
+
+        case "lead_update":
+          // Update existing lead with enriched data
+          setJobs((prev) => {
+            const newMap = new Map(prev);
+            const job = newMap.get(jobId);
+            if (job && data.data) {
+              const updatedLead = data.data as Lead;
+              const updatedLeads = job.leads.map((lead) =>
+                lead.place_id === updatedLead.place_id ? updatedLead : lead
+              );
+              newMap.set(jobId, { ...job, leads: updatedLeads });
             }
             return newMap;
           });
@@ -138,123 +146,92 @@ export function useJobsManager(): UseJobsManagerReturn {
 
         case "error":
           updateJob(jobId, {
-            error: message.message,
-            status: message.recoverable ? "running" : "failed",
+            error: data.message || "An error occurred",
+            status: data.recoverable ? "running" : "failed",
           });
           break;
 
         case "complete":
           updateJob(jobId, {
-            summary: message.summary,
+            summary: data.summary || null,
             status: "completed",
           });
-          break;
-
-        case "ping":
-          // Ignore ping messages
           break;
       }
     },
     [updateJob]
   );
 
-  // Connect WebSocket for a job
-  const connectWebSocket = useCallback(
-    async (jobId: string, query: string) => {
-      let wsUrl = getWebSocketUrl(jobId);
-
-      // Add auth token as query parameter (WebSocket doesn't support headers)
-      const token = await getAuthToken();
-      if (token) {
-        wsUrl = `${wsUrl}?token=${encodeURIComponent(token)}`;
-      }
-
+  // Connect SSE for a job
+  const connectSSE = useCallback(
+    async (jobId: string) => {
       // Close existing connection if any
-      const existing = wsConnections.current.get(jobId);
+      const existing = sseConnections.current.get(jobId);
       if (existing) {
-        existing.ws.close();
+        existing.close();
       }
 
-      const ws = new WebSocket(wsUrl);
-      wsConnections.current.set(jobId, { ws, reconnectAttempts: 0 });
+      const url = await getStreamUrl(jobId);
+      const es = new EventSource(url);
+      sseConnections.current.set(jobId, es);
 
-      ws.onopen = () => {
-        updateJob(jobId, { status: "running" });
-        // Reset reconnect attempts on successful connection
-        const conn = wsConnections.current.get(jobId);
-        if (conn) {
-          conn.reconnectAttempts = 0;
-        }
-      };
+      // Listen for specific event types
+      const eventTypes = ["status", "lead", "lead_update", "error", "complete"];
 
-      ws.onmessage = (event) => {
-        try {
-          const message: WsMessage = JSON.parse(event.data);
-          handleMessage(jobId, message);
-        } catch {
-          console.error("Failed to parse WebSocket message:", event.data);
-        }
-      };
+      eventTypes.forEach((eventType) => {
+        es.addEventListener(eventType, (event) => {
+          try {
+            const data = JSON.parse(event.data) as SSEMessage;
+            handleSSEMessage(jobId, eventType, data);
 
-      ws.onclose = () => {
-        // Check if job is still running and should reconnect
-        const job = jobsRef.current.get(jobId);
-        const conn = wsConnections.current.get(jobId);
-
-        if (
-          job &&
-          job.status === "running" &&
-          conn &&
-          conn.reconnectAttempts < MAX_RECONNECT_ATTEMPTS
-        ) {
-          conn.reconnectAttempts++;
-
-          // Clear any existing timeout
-          const existingTimeout = reconnectTimeouts.current.get(jobId);
-          if (existingTimeout) {
-            clearTimeout(existingTimeout);
+            // Close connection on terminal events
+            if (eventType === "complete" || (eventType === "error" && !data.recoverable)) {
+              es.close();
+              sseConnections.current.delete(jobId);
+            }
+          } catch (err) {
+            console.error("Failed to parse SSE message:", err);
           }
+        });
+      });
 
-          // Schedule reconnection
-          const timeout = setTimeout(() => {
-            connectWebSocket(jobId, query);
-          }, RECONNECT_DELAY);
+      es.onopen = () => {
+        updateJob(jobId, { status: "running" });
+        // SSE connected successfully - remove from failed set to stop polling
+        sseFailedJobs.current.delete(jobId);
+      };
 
-          reconnectTimeouts.current.set(jobId, timeout);
+      es.onerror = () => {
+        // EventSource auto-reconnects, so we just log
+        // Only worry if readyState is CLOSED (permanent failure)
+        if (es.readyState === EventSource.CLOSED) {
+          // Check if job is still active before marking for polling fallback
+          const job = jobsRef.current.get(jobId);
+          if (job && (job.status === "pending" || job.status === "running")) {
+            // Add to failed set - polling fallback will handle updates
+            sseFailedJobs.current.add(jobId);
+            console.warn("SSE connection closed for job:", jobId, "- falling back to polling");
+          }
+          sseConnections.current.delete(jobId);
         }
       };
 
-      ws.onerror = () => {
-        // Only set error if job is still pending/running and this is not a reconnection
-        const conn = wsConnections.current.get(jobId);
-        const job = jobsRef.current.get(jobId);
-        if (job && (job.status === "pending" || job.status === "running") && conn && conn.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-          updateJob(jobId, { error: "WebSocket connection error" });
-        }
-      };
+      return es;
     },
-    [handleMessage, updateJob]
+    [handleSSEMessage, updateJob]
   );
-
-  // Store connectWebSocket in ref for use in initialization effect
-  useEffect(() => {
-    connectWebSocketRef.current = connectWebSocket;
-  }, [connectWebSocket]);
 
   // Load existing running jobs on mount
   useEffect(() => {
     if (isInitialized) return;
 
     const loadExistingJobs = async () => {
-      // Parse date safely - handles both with and without Z suffix
       const parseDate = (dateStr: string | null | undefined): Date => {
         if (!dateStr) return new Date();
-        // If it already has timezone info or Z, parse directly
-        if (dateStr.includes('Z') || dateStr.includes('+')) {
+        if (dateStr.includes("Z") || dateStr.includes("+")) {
           return new Date(dateStr);
         }
-        // Otherwise append Z for UTC
-        return new Date(dateStr + 'Z');
+        return new Date(dateStr + "Z");
       };
 
       try {
@@ -271,10 +248,13 @@ export function useJobsManager(): UseJobsManagerReturn {
           (job) => job.status === "pending" || job.status === "running"
         );
         const completedJobs = response.jobs.filter(
-          (job) => job.status === "completed" || job.status === "failed" || job.status === "cancelled"
+          (job) =>
+            job.status === "completed" ||
+            job.status === "failed" ||
+            job.status === "cancelled"
         );
 
-        // Add running jobs to state and connect WebSockets
+        // Add running jobs to state and connect SSE
         if (runningJobs.length > 0) {
           const newJobsMap = new Map<string, JobState>();
 
@@ -302,11 +282,9 @@ export function useJobsManager(): UseJobsManagerReturn {
 
           setJobs(newJobsMap);
 
-          // Connect WebSocket for each running job
+          // Connect SSE for each running job
           for (const apiJob of runningJobs) {
-            if (connectWebSocketRef.current) {
-              connectWebSocketRef.current(apiJob.job_id, apiJob.query);
-            }
+            connectSSE(apiJob.job_id);
           }
         }
 
@@ -314,16 +292,18 @@ export function useJobsManager(): UseJobsManagerReturn {
         if (completedJobs.length > 0) {
           const recentCompleted = completedJobs
             .slice(0, MAX_RECENT_JOBS)
-            .map((apiJob): JobState => ({
-              jobId: apiJob.job_id,
-              query: apiJob.query,
-              status: apiJob.status,
-              progress: apiJob.progress,
-              leads: [],
-              summary: apiJob.summary,
-              error: apiJob.error,
-              startedAt: parseDate(apiJob.started_at || apiJob.created_at),
-            }));
+            .map(
+              (apiJob): JobState => ({
+                jobId: apiJob.job_id,
+                query: apiJob.query,
+                status: apiJob.status,
+                progress: apiJob.progress,
+                leads: [],
+                summary: apiJob.summary,
+                error: apiJob.error,
+                startedAt: parseDate(apiJob.started_at || apiJob.created_at),
+              })
+            );
           setRecentJobs(recentCompleted);
         }
       } catch (err) {
@@ -334,7 +314,7 @@ export function useJobsManager(): UseJobsManagerReturn {
     };
 
     loadExistingJobs();
-  }, [isInitialized]);
+  }, [isInitialized, connectSSE]);
 
   // Start a new job
   const startJob = useCallback(
@@ -367,8 +347,8 @@ export function useJobsManager(): UseJobsManagerReturn {
           return newMap;
         });
 
-        // Connect WebSocket
-        connectWebSocket(jobId, request.query);
+        // Connect SSE
+        connectSSE(jobId);
 
         return jobId;
       } catch (err) {
@@ -379,7 +359,7 @@ export function useJobsManager(): UseJobsManagerReturn {
         setIsStarting(false);
       }
     },
-    [canStartNewJob, connectWebSocket]
+    [canStartNewJob, connectSSE]
   );
 
   // Cancel a job
@@ -389,18 +369,11 @@ export function useJobsManager(): UseJobsManagerReturn {
         await cancelJob(jobId);
         updateJob(jobId, { status: "cancelled" });
 
-        // Close WebSocket
-        const conn = wsConnections.current.get(jobId);
-        if (conn) {
-          conn.ws.close();
-          wsConnections.current.delete(jobId);
-        }
-
-        // Clear any reconnect timeout
-        const timeout = reconnectTimeouts.current.get(jobId);
-        if (timeout) {
-          clearTimeout(timeout);
-          reconnectTimeouts.current.delete(jobId);
+        // Close SSE connection
+        const es = sseConnections.current.get(jobId);
+        if (es) {
+          es.close();
+          sseConnections.current.delete(jobId);
         }
       } catch (err) {
         console.error("Failed to cancel job:", err);
@@ -414,7 +387,7 @@ export function useJobsManager(): UseJobsManagerReturn {
     setRecentJobs((prev) => prev.filter((job) => job.jobId !== jobId));
   }, []);
 
-  // Fallback API polling for active jobs (in case WebSocket disconnects)
+  // Smart fallback polling - only poll for jobs where SSE has failed
   useEffect(() => {
     // Only poll if there are active jobs
     if (activeJobs.length === 0) {
@@ -425,24 +398,40 @@ export function useJobsManager(): UseJobsManagerReturn {
       return;
     }
 
-    // Poll every 5 seconds as fallback
+    // Smart fallback: only poll if at least one job has failed SSE
     pollingIntervalRef.current = setInterval(async () => {
+      // Get jobs that need polling (SSE failed)
+      const jobsNeedingPoll = activeJobs.filter((job) =>
+        sseFailedJobs.current.has(job.jobId)
+      );
+
+      // Skip polling if all jobs have working SSE connections
+      if (jobsNeedingPoll.length === 0) {
+        return;
+      }
+
+      console.log(`Polling ${jobsNeedingPoll.length} job(s) with failed SSE`);
+
       try {
         const response = await listJobs();
         const parseDate = (dateStr: string | null | undefined): Date => {
           if (!dateStr) return new Date();
-          if (dateStr.includes('Z') || dateStr.includes('+')) {
+          if (dateStr.includes("Z") || dateStr.includes("+")) {
             return new Date(dateStr);
           }
-          return new Date(dateStr + 'Z');
+          return new Date(dateStr + "Z");
         };
 
         for (const apiJob of response.jobs) {
+          // Only update jobs that are in the failed SSE set
+          if (!sseFailedJobs.current.has(apiJob.job_id)) continue;
+
           const currentJob = jobsRef.current.get(apiJob.job_id);
           if (!currentJob) continue;
 
           // Only update if there are changes
-          const hasProgressChange = JSON.stringify(currentJob.progress) !== JSON.stringify(apiJob.progress);
+          const hasProgressChange =
+            JSON.stringify(currentJob.progress) !== JSON.stringify(apiJob.progress);
           const hasStatusChange = currentJob.status !== apiJob.status;
 
           if (hasProgressChange || hasStatusChange) {
@@ -463,12 +452,17 @@ export function useJobsManager(): UseJobsManagerReturn {
               error: apiJob.error,
               leads,
             });
+
+            // If job completed/failed, remove from failed set
+            if (["completed", "failed", "cancelled"].includes(apiJob.status)) {
+              sseFailedJobs.current.delete(apiJob.job_id);
+            }
           }
         }
       } catch (err) {
         console.error("Fallback polling error:", err);
       }
-    }, 5000);
+    }, POLLING_INTERVAL);
 
     return () => {
       if (pollingIntervalRef.current) {
@@ -481,17 +475,11 @@ export function useJobsManager(): UseJobsManagerReturn {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // Close all WebSocket connections
-      wsConnections.current.forEach((conn) => {
-        conn.ws.close();
+      // Close all SSE connections
+      sseConnections.current.forEach((es) => {
+        es.close();
       });
-      wsConnections.current.clear();
-
-      // Clear all reconnect timeouts
-      reconnectTimeouts.current.forEach((timeout) => {
-        clearTimeout(timeout);
-      });
-      reconnectTimeouts.current.clear();
+      sseConnections.current.clear();
     };
   }, []);
 

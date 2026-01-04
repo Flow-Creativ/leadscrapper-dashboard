@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { startScrape, getWebSocketUrl, cancelJob } from "@/lib/api";
-import { useWebSocket } from "./use-websocket";
+import { startScrape, getStreamUrl, cancelJob } from "@/lib/api";
 import {
   trackScrapeCompleted,
   trackScrapeFailed,
@@ -12,7 +11,7 @@ import type {
   JobProgress,
   JobSummary,
   Lead,
-  WsMessage,
+  SSEMessage,
   JobStatus,
 } from "@/lib/types";
 
@@ -43,66 +42,113 @@ export function useScrapeJob(): UseScrapeJobReturn {
 
   // Ref to track jobId in callbacks
   const jobIdRef = useRef<string | null>(null);
+  const esRef = useRef<EventSource | null>(null);
 
-  const handleMessage = useCallback((message: WsMessage) => {
-    switch (message.type) {
+  const handleSSEMessage = useCallback((eventType: string, data: SSEMessage) => {
+    switch (eventType) {
       case "status":
         setProgress({
-          step: message.step,
-          current: message.current,
-          total: message.total,
-          message: message.message,
+          step: data.step || "",
+          current: data.current || 0,
+          total: data.total || 0,
+          message: data.message || null,
         });
         setStatus("running");
         break;
 
       case "lead":
-        setLeads((prev) => [...prev, message.data]);
+        if (data.data) {
+          setLeads((prev) => [...prev, data.data as Lead]);
+        }
+        break;
+
+      case "lead_update":
+        if (data.data) {
+          const updatedLead = data.data as Lead;
+          setLeads((prev) =>
+            prev.map((lead) =>
+              lead.place_id === updatedLead.place_id ? updatedLead : lead
+            )
+          );
+        }
         break;
 
       case "error":
-        setError(message.message);
-        if (!message.recoverable) {
+        setError(data.message || "An error occurred");
+        if (!data.recoverable) {
           setStatus("failed");
           setIsLoading(false);
           // Track scrape failure
           if (jobIdRef.current) {
-            trackScrapeFailed(jobIdRef.current, message.message);
+            trackScrapeFailed(jobIdRef.current, data.message || "Unknown error");
           }
         }
         break;
 
       case "complete":
-        setSummary(message.summary);
+        if (data.summary) {
+          setSummary(data.summary);
+        }
         setStatus("completed");
         setIsLoading(false);
         // Track scrape completion
-        if (jobIdRef.current) {
-          trackScrapeCompleted(jobIdRef.current, message.summary.total_leads);
+        if (jobIdRef.current && data.summary) {
+          trackScrapeCompleted(jobIdRef.current, data.summary.total_leads);
         }
-        break;
-
-      case "ping":
-        // Ignore ping messages
         break;
     }
   }, []);
 
-  const { connect, disconnect } = useWebSocket({
-    onMessage: handleMessage,
-    onOpen: () => {
-      setStatus("running");
+  const connectSSE = useCallback(
+    async (id: string) => {
+      const url = await getStreamUrl(id);
+      const es = new EventSource(url);
+      esRef.current = es;
+
+      // Listen for specific event types
+      const eventTypes = ["status", "lead", "lead_update", "error", "complete"];
+
+      eventTypes.forEach((eventType) => {
+        es.addEventListener(eventType, (event) => {
+          try {
+            const data = JSON.parse(event.data) as SSEMessage;
+            handleSSEMessage(eventType, data);
+
+            // Close connection on terminal events
+            if (eventType === "complete" || (eventType === "error" && !data.recoverable)) {
+              es.close();
+              esRef.current = null;
+            }
+          } catch (err) {
+            console.error("Failed to parse SSE message:", err);
+          }
+        });
+      });
+
+      es.onopen = () => {
+        setStatus("running");
+      };
+
+      es.onerror = () => {
+        // EventSource auto-reconnects
+        // Only set error if connection is permanently closed
+        if (es.readyState === EventSource.CLOSED) {
+          if (status === "running") {
+            setError("Connection lost");
+          }
+          esRef.current = null;
+        }
+      };
     },
-    onClose: () => {
-      // Only mark as failed if we didn't complete successfully
-      if (status === "running") {
-        setError("Connection lost");
-      }
-    },
-    onError: () => {
-      setError("WebSocket connection failed");
-    },
-  });
+    [handleSSEMessage, status]
+  );
+
+  const disconnect = useCallback(() => {
+    if (esRef.current) {
+      esRef.current.close();
+      esRef.current = null;
+    }
+  }, []);
 
   const start = useCallback(
     async (request: ScrapeRequest) => {
@@ -118,16 +164,15 @@ export function useScrapeJob(): UseScrapeJobReturn {
         setJobId(response.job_id);
         jobIdRef.current = response.job_id;
 
-        // Connect to WebSocket for real-time updates
-        const wsUrl = getWebSocketUrl(response.job_id);
-        connect(wsUrl);
+        // Connect to SSE for real-time updates
+        connectSSE(response.job_id);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to start scrape");
         setStatus("failed");
         setIsLoading(false);
       }
     },
-    [connect]
+    [connectSSE]
   );
 
   const cancel = useCallback(async () => {

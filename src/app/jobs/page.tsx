@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { RefreshCw, Plus } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -10,12 +10,20 @@ import { listJobs } from "@/lib/api";
 import { trackJobListViewed } from "@/lib/firebase/analytics";
 import type { JobStatusResponse } from "@/lib/types";
 
+const POLLING_INTERVAL = 10000; // 10s for list view
+
 export default function JobsPage() {
   const [jobs, setJobs] = useState<JobStatusResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const jobsRef = useRef<JobStatusResponse[]>([]);
 
-  const fetchJobs = async () => {
+  // Keep jobsRef in sync
+  useEffect(() => {
+    jobsRef.current = jobs;
+  }, [jobs]);
+
+  const fetchJobs = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -27,20 +35,23 @@ export default function JobsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchJobs();
 
-    // Refresh every 10 seconds if there are running jobs
+    // Refresh every 10 seconds only if there are running jobs
     const interval = setInterval(() => {
-      if (jobs.some((j) => j.status === "running" || j.status === "pending")) {
+      const hasActiveJobs = jobsRef.current.some(
+        (j) => j.status === "running" || j.status === "pending"
+      );
+      if (hasActiveJobs) {
         fetchJobs();
       }
-    }, 10000);
+    }, POLLING_INTERVAL);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchJobs]);
 
   const handleJobDeleted = (jobId: string) => {
     setJobs(jobs.filter(j => j.job_id !== jobId));

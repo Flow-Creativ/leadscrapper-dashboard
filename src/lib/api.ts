@@ -150,9 +150,13 @@ export async function getDemoLeads(): Promise<Lead[]> {
   }
 }
 
-export function getWebSocketUrl(jobId: string): string {
-  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
-  return `${wsUrl}/ws/${jobId}`;
+export async function getStreamUrl(jobId: string): Promise<string> {
+  const baseUrl = `${API_URL}/api/jobs/${jobId}/stream`;
+  const token = await getAuthToken();
+  if (token) {
+    return `${baseUrl}?token=${encodeURIComponent(token)}`;
+  }
+  return baseUrl;
 }
 
 export async function enhanceQuery(query: string): Promise<QueryEnhanceResponse> {
@@ -195,5 +199,5 @@ export async function generateLeadResearch(leadId: string): Promise<LeadResearch
   });
 }
 
-// Export getAuthToken for WebSocket auth
+// Export getAuthToken for SSE auth (cookie fallback)
 export { getAuthToken };

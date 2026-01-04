@@ -12,14 +12,13 @@ export interface ScrapeRequest {
 export interface JobCreatedResponse {
   job_id: string;
   status: string;
-  websocket_url: string;
 }
 
 export interface JobProgress {
   step: string;
   current: number;
   total: number;
-  message: string;
+  message: string | null;
 }
 
 export interface JobSummary {
@@ -83,6 +82,7 @@ export interface LeadResearchResponse {
 
 export interface Lead {
   id?: string; // Lead ID for research endpoint
+  place_id?: string; // Google Maps place ID for updates
   name: string;
   phone: string | null;
   email: string | null;
@@ -103,41 +103,21 @@ export interface Lead {
   research?: LeadResearch | null;
 }
 
-// WebSocket Message Types
-export interface WsStatusMessage {
-  type: "status";
-  step: string;
-  current: number;
-  total: number;
-  message: string;
+// SSE Message Types (Server-Sent Events)
+export interface SSEMessage {
+  type?: string;
+  // Status event fields
+  step?: string;
+  current?: number;
+  total?: number;
+  message?: string;
+  // Lead event fields
+  data?: Lead | Record<string, unknown>;
+  // Error event fields
+  recoverable?: boolean;
+  // Complete event fields
+  summary?: JobSummary;
 }
-
-export interface WsLeadMessage {
-  type: "lead";
-  data: Lead;
-}
-
-export interface WsErrorMessage {
-  type: "error";
-  message: string;
-  recoverable: boolean;
-}
-
-export interface WsCompleteMessage {
-  type: "complete";
-  summary: JobSummary;
-}
-
-export interface WsPingMessage {
-  type: "ping";
-}
-
-export type WsMessage =
-  | WsStatusMessage
-  | WsLeadMessage
-  | WsErrorMessage
-  | WsCompleteMessage
-  | WsPingMessage;
 
 // Query Enhancement
 export interface QueryEnhanceResponse {
