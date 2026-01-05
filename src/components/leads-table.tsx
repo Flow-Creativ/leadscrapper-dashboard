@@ -557,10 +557,11 @@ function LeadDetails({ lead }: { lead: Lead }) {
                 Copy brief
               </Button>
             )}
-            {lead.id && (
+            {/* Show research button only when lead is enriched (has tier) and not already researched */}
+            {lead.id && lead.tier && !research && (
               <Button
                 size="sm"
-                variant={research ? "secondary" : "outline"}
+                variant="outline"
                 className="h-8 px-3 text-xs"
                 onClick={handleResearch}
                 disabled={isResearching}
@@ -568,12 +569,12 @@ function LeadDetails({ lead }: { lead: Lead }) {
                 {isResearching ? (
                   <>
                     <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                    {research ? "Refreshing..." : "Researching..."}
+                    Researching...
                   </>
                 ) : (
                   <>
                     <Sparkles className="mr-2 h-3 w-3" />
-                    {research ? "Regenerate brief" : "Generate research"}
+                    Generate research
                   </>
                 )}
               </Button>
@@ -588,7 +589,7 @@ function LeadDetails({ lead }: { lead: Lead }) {
           </div>
         )}
 
-        {!research && !isResearching && !researchError && lead.id && (
+        {!research && !isResearching && !researchError && lead.id && lead.tier && (
           <div className="rounded-lg border bg-card p-4">
             <p className="text-sm text-muted-foreground">
               Generate a short brief to tailor your outreach. We&apos;ll capture pain points, opportunities, and talking points in about 30 seconds.
