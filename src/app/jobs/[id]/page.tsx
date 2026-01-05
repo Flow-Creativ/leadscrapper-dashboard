@@ -244,6 +244,14 @@ export default function JobDetailPage() {
                     }
                   : prev
               );
+              // Reload leads from database to get IDs (needed for Business Research button)
+              getJobLeads(jobId).then((dbLeads) => {
+                if (dbLeads.length > 0) {
+                  setLeads(dbLeads);
+                }
+              }).catch(() => {
+                // Ignore errors, leads are already in state from SSE
+              });
               break;
           }
 
