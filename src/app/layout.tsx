@@ -8,6 +8,8 @@ import { AnalyticsProvider } from "@/components/providers/analytics-provider";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { StructuredData } from "@/components/structured-data";
 import { siteConfig } from "@/lib/site-config";
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -64,28 +66,33 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background`}
       >
-        <StructuredData />
-        <AuthProvider>
-          <AnalyticsProvider>
-            <Header />
-            <main className="container mx-auto py-6 px-4">
-              <ErrorBoundary>
-                {children}
-              </ErrorBoundary>
-            </main>
-            <Toaster position="top-center" richColors />
-          </AnalyticsProvider>
-        </AuthProvider>
+        <NextIntlClientProvider messages={messages}>
+          <StructuredData />
+          <AuthProvider>
+            <AnalyticsProvider>
+              <Header />
+              <main className="container mx-auto py-6 px-4">
+                <ErrorBoundary>
+                  {children}
+                </ErrorBoundary>
+              </main>
+              <Toaster position="top-center" richColors />
+            </AnalyticsProvider>
+          </AuthProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

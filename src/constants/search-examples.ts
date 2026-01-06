@@ -1069,12 +1069,22 @@ export const SEARCH_EXAMPLES = [
   "warehouse rental in Jakarta",
 ] as const;
 
+// Re-export for backward compatibility
+import { SEARCH_EXAMPLES_ID } from '../../messages/search-examples/id';
+
+const EXAMPLES_BY_LOCALE = {
+  en: SEARCH_EXAMPLES,
+  id: SEARCH_EXAMPLES_ID,
+};
+
 /**
  * Get random sample suggestions from the pool
  * @param count Number of suggestions to return (default: 3)
+ * @param locale Language locale ('en' or 'id')
  * @returns Array of random suggestions
  */
-export function getRandomExamples(count: number = 3): string[] {
-  const shuffled = [...SEARCH_EXAMPLES].sort(() => Math.random() - 0.5);
+export function getRandomExamples(count: number = 3, locale: string = 'en'): string[] {
+  const examples = EXAMPLES_BY_LOCALE[locale as keyof typeof EXAMPLES_BY_LOCALE] || EXAMPLES_BY_LOCALE.en;
+  const shuffled = [...examples].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 }

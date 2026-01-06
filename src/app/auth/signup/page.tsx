@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { MapPin, Loader2, Mail, Lock, AlertCircle, CheckCircle2, Check, X } from "lucide-react";
+import { useTranslations } from 'next-intl';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,8 @@ interface PasswordRequirement {
 }
 
 export default function SignUpPage() {
+  const t = useTranslations('auth.signup');
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -31,11 +34,11 @@ export default function SignUpPage() {
   const [success, setSuccess] = useState(false);
 
   const passwordRequirements: PasswordRequirement[] = useMemo(() => [
-    { label: "At least 8 characters", met: password.length >= 8 },
-    { label: "Contains a number", met: /\d/.test(password) },
-    { label: "Contains uppercase letter", met: /[A-Z]/.test(password) },
-    { label: "Contains lowercase letter", met: /[a-z]/.test(password) },
-  ], [password]);
+    { label: t('passwordRequirements.minLength'), met: password.length >= 8 },
+    { label: t('passwordRequirements.hasNumber'), met: /\d/.test(password) },
+    { label: t('passwordRequirements.hasUppercase'), met: /[A-Z]/.test(password) },
+    { label: t('passwordRequirements.hasLowercase'), met: /[a-z]/.test(password) },
+  ], [password, t]);
 
   const allRequirementsMet = passwordRequirements.every(req => req.met);
   const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
@@ -46,13 +49,13 @@ export default function SignUpPage() {
     setIsLoading(true);
 
     if (!allRequirementsMet) {
-      setError("Please meet all password requirements");
+      setError(t('errors.passwordRequirements'));
       setIsLoading(false);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t('errors.passwordMismatch'));
       setIsLoading(false);
       return;
     }
@@ -69,7 +72,7 @@ export default function SignUpPage() {
 
       if (error) {
         if (error.message.includes("already registered")) {
-          setError("This email is already registered. Please sign in instead.");
+          setError(t('errors.emailExists'));
         } else {
           setError(error.message);
         }
@@ -79,7 +82,7 @@ export default function SignUpPage() {
       trackSignUp("email");
       setSuccess(true);
     } catch {
-      setError("An unexpected error occurred. Please try again.");
+      setError(t('errors.unexpected'));
     } finally {
       setIsLoading(false);
     }
@@ -96,10 +99,10 @@ export default function SignUpPage() {
               </div>
             </div>
             <CardTitle className="text-2xl text-center font-bold">
-              Check your email
+              {t('success.title')}
             </CardTitle>
             <CardDescription className="text-center text-base">
-              We&apos;ve sent a verification link to
+              {t('success.description')}
               <br />
               <span className="font-medium text-foreground">{email}</span>
             </CardDescription>
@@ -107,17 +110,17 @@ export default function SignUpPage() {
           <CardContent className="space-y-4">
             <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
               <p className="mb-2">
-                Click the link in the email to verify your account. If you don&apos;t see it, check your spam folder.
+                {t('success.instructions')}
               </p>
               <p>
-                The link will expire in 24 hours.
+                {t('success.expiry')}
               </p>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-3">
             <Button variant="outline" className="w-full" asChild>
               <Link href="/auth/signin">
-                Back to Sign In
+                {t('success.backToSignIn')}
               </Link>
             </Button>
           </CardFooter>
@@ -136,10 +139,10 @@ export default function SignUpPage() {
             </div>
           </div>
           <CardTitle className="text-2xl text-center font-bold">
-            Create your account
+            {t('title')}
           </CardTitle>
           <CardDescription className="text-center">
-            Start finding quality leads in minutes
+            {t('description')}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -151,13 +154,13 @@ export default function SignUpPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('email.label')}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t('email.placeholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -167,13 +170,13 @@ export default function SignUpPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('password.label')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Create a password"
+                  placeholder={t('password.placeholder')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -202,13 +205,13 @@ export default function SignUpPage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">{t('confirmPassword.label')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="confirmPassword"
                   type="password"
-                  placeholder="Confirm your password"
+                  placeholder={t('confirmPassword.placeholder')}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
@@ -240,15 +243,15 @@ export default function SignUpPage() {
               disabled={isLoading || !allRequirementsMet || !passwordsMatch}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Account
+              {t('submitButton')}
             </Button>
             <p className="text-sm text-muted-foreground text-center">
-              Already have an account?{" "}
+              {t('hasAccount')}{" "}
               <Link
                 href="/auth/signin"
                 className="text-primary font-medium hover:underline"
               >
-                Sign in
+                {t('signIn')}
               </Link>
             </p>
           </CardFooter>

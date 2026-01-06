@@ -22,6 +22,7 @@ import {
   Check,
   Clock3,
 } from "lucide-react";
+import { useTranslations } from 'next-intl';
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -72,6 +73,7 @@ function isLeadProcessing(
 }
 
 export function LeadsTable({ leads, isLoading, jobStatus, jobProgress }: LeadsTableProps) {
+  const t = useTranslations('leadsTable');
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (name: string, lead: Lead) => {
@@ -93,7 +95,7 @@ export function LeadsTable({ leads, isLoading, jobStatus, jobProgress }: LeadsTa
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Leads</CardTitle>
+          <CardTitle>{t('title', { count: 0 })}</CardTitle>
         </CardHeader>
         <CardContent className="py-8 text-center space-y-4">
           <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center">
@@ -101,25 +103,25 @@ export function LeadsTable({ leads, isLoading, jobStatus, jobProgress }: LeadsTa
           </div>
           {isInterrupted ? (
             <div>
-              <h3 className="font-medium">Job was interrupted</h3>
+              <h3 className="font-medium">{t('emptyStates.interrupted')}</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Results couldn&apos;t be saved. Please retry the job.
+                {t('emptyStates.notSaved')}
               </p>
             </div>
           ) : (
             <>
               <div>
-                <h3 className="font-medium">No results found</h3>
+                <h3 className="font-medium">{t('emptyStates.noResults')}</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Google Maps didn&apos;t return any businesses for this query.
+                  {t('emptyStates.noBusinesses')}
                 </p>
               </div>
               <div className="rounded-lg bg-muted/50 p-4 text-left text-sm max-w-md mx-auto">
-                <p className="font-medium mb-2">Tips for better results:</p>
+                <p className="font-medium mb-2">{t('emptyStates.tipsTitle')}</p>
                 <ul className="space-y-1 text-muted-foreground">
-                  <li>• Use business categories: &quot;coffee shops&quot;, &quot;restaurants&quot;</li>
-                  <li>• Add a location: &quot;in Jakarta&quot;, &quot;near Senopati&quot;</li>
-                  <li>• Be specific: &quot;Japanese restaurants in Kemang&quot;</li>
+                  <li>• {t('emptyStates.tips.categories')}</li>
+                  <li>• {t('emptyStates.tips.location')}</li>
+                  <li>• {t('emptyStates.tips.specific')}</li>
                 </ul>
               </div>
             </>
@@ -133,15 +135,15 @@ export function LeadsTable({ leads, isLoading, jobStatus, jobProgress }: LeadsTa
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span>Leads ({leads.length})</span>
+          <span>{t('title', { count: leads.length })}</span>
           {isLoading && (
             <span className="text-sm font-normal text-muted-foreground animate-pulse">
-              Loading...
+              {t('loading')}
             </span>
           )}
         </CardTitle>
         <CardDescription>
-          Click on a row to view outreach messages
+          {t('description')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -150,13 +152,13 @@ export function LeadsTable({ leads, isLoading, jobStatus, jobProgress }: LeadsTa
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[30px]"></TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-center">Rating</TableHead>
-                <TableHead className="text-center">Score</TableHead>
-                <TableHead className="text-center">Tier</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t('headers.name')}</TableHead>
+                <TableHead>{t('headers.category')}</TableHead>
+                <TableHead className="text-center">{t('headers.rating')}</TableHead>
+                <TableHead className="text-center">{t('headers.score')}</TableHead>
+                <TableHead className="text-center">{t('headers.tier')}</TableHead>
+                <TableHead>{t('headers.contact')}</TableHead>
+                <TableHead className="text-right">{t('headers.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

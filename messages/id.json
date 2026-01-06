@@ -1,0 +1,363 @@
+{
+  "common": {
+    "appName": "Lead Scraper",
+    "dashboard": "Dasbor",
+    "jobs": "Pekerjaan",
+    "signIn": "Masuk",
+    "signOut": "Keluar",
+    "loading": "Memuat...",
+    "error": "Kesalahan",
+    "success": "Berhasil"
+  },
+  "languageSelector": {
+    "selectLanguage": "Pilih Bahasa",
+    "english": "English",
+    "indonesian": "Bahasa Indonesia"
+  },
+  "auth": {
+    "signin": {
+      "title": "Selamat datang kembali",
+      "description": "Masuk ke akun Anda untuk melanjutkan",
+      "email": {
+        "label": "Email",
+        "placeholder": "anda@example.com"
+      },
+      "password": {
+        "label": "Kata Sandi",
+        "placeholder": "Masukkan kata sandi"
+      },
+      "forgotPassword": "Lupa kata sandi?",
+      "submitButton": "Masuk",
+      "noAccount": "Belum punya akun?",
+      "createAccount": "Buat akun",
+      "errors": {
+        "invalidCredentials": "Email atau kata sandi salah. Silakan coba lagi.",
+        "emailNotConfirmed": "Silakan verifikasi email Anda sebelum masuk. Periksa inbox untuk link verifikasi.",
+        "unexpected": "Terjadi kesalahan. Silakan coba lagi.",
+        "authCallback": "Terjadi masalah saat memverifikasi email Anda. Silakan coba lagi."
+      },
+      "messages": {
+        "passwordUpdated": "Kata sandi Anda telah diperbarui. Silakan masuk.",
+        "emailVerified": "Email Anda telah diverifikasi. Silakan masuk."
+      }
+    },
+    "signup": {
+      "title": "Buat akun Anda",
+      "description": "Mulai temukan lead berkualitas dalam hitungan menit",
+      "email": {
+        "label": "Email",
+        "placeholder": "anda@example.com"
+      },
+      "password": {
+        "label": "Kata Sandi",
+        "placeholder": "Buat kata sandi"
+      },
+      "confirmPassword": {
+        "label": "Konfirmasi Kata Sandi",
+        "placeholder": "Konfirmasi kata sandi Anda"
+      },
+      "submitButton": "Buat Akun",
+      "hasAccount": "Sudah punya akun?",
+      "signIn": "Masuk",
+      "passwordRequirements": {
+        "minLength": "Minimal 8 karakter",
+        "hasNumber": "Mengandung angka",
+        "hasUppercase": "Mengandung huruf kapital",
+        "hasLowercase": "Mengandung huruf kecil"
+      },
+      "success": {
+        "title": "Periksa email Anda",
+        "description": "Kami telah mengirimkan link verifikasi ke",
+        "instructions": "Klik link di email untuk memverifikasi akun Anda. Jika tidak terlihat, periksa folder spam.",
+        "expiry": "Link akan kadaluarsa dalam 24 jam.",
+        "backToSignIn": "Kembali ke Masuk"
+      },
+      "errors": {
+        "emailExists": "Email ini sudah terdaftar.",
+        "passwordRequirements": "Kata sandi tidak memenuhi persyaratan.",
+        "passwordMismatch": "Kata sandi tidak cocok.",
+        "unexpected": "Terjadi kesalahan. Silakan coba lagi."
+      }
+    },
+    "forgotPassword": {
+      "title": "Lupa kata sandi?",
+      "description": "Masukkan email Anda dan kami akan mengirimkan link reset",
+      "email": {
+        "label": "Email",
+        "placeholder": "anda@example.com"
+      },
+      "submitButton": "Kirim Link Reset",
+      "backToSignIn": "Kembali ke Masuk",
+      "success": {
+        "title": "Periksa email Anda",
+        "description": "Kami telah mengirimkan link reset kata sandi ke",
+        "instructions": "Klik link di email untuk mereset kata sandi Anda. Jika tidak terlihat, periksa folder spam.",
+        "expiry": "Link akan kadaluarsa dalam 1 jam."
+      },
+      "errors": {
+        "unexpected": "Terjadi kesalahan. Silakan coba lagi."
+      }
+    },
+    "resetPassword": {
+      "title": "Buat kata sandi baru",
+      "description": "Masukkan kata sandi baru Anda di bawah",
+      "password": {
+        "label": "Kata Sandi Baru",
+        "placeholder": "Masukkan kata sandi baru"
+      },
+      "confirmPassword": {
+        "label": "Konfirmasi Kata Sandi Baru",
+        "placeholder": "Konfirmasi kata sandi baru Anda"
+      },
+      "submitButton": "Perbarui Kata Sandi",
+      "passwordRequirements": {
+        "minLength": "Minimal 8 karakter",
+        "hasNumber": "Mengandung angka",
+        "hasUppercase": "Mengandung huruf kapital",
+        "hasLowercase": "Mengandung huruf kecil"
+      },
+      "errors": {
+        "passwordRequirements": "Kata sandi tidak memenuhi persyaratan.",
+        "passwordMismatch": "Kata sandi tidak cocok.",
+        "unexpected": "Terjadi kesalahan. Silakan coba lagi."
+      },
+      "invalid": {
+        "title": "Link Tidak Valid atau Kadaluarsa",
+        "description": "Link reset kata sandi tidak valid atau sudah kadaluarsa. Silakan minta yang baru.",
+        "requestNew": "Minta Link Baru"
+      }
+    }
+  },
+  "dashboard": {
+    "title": "Dasbor",
+    "subtitle": "Temukan lead bisnis berkualitas tinggi dari Google Maps",
+    "viewHistory": "Lihat Riwayat",
+    "activeSectionTitle": "Pekerjaan Aktif ({count})",
+    "recentSectionTitle": "Selesai Terbaru",
+    "emptyState": {
+      "title": "Belum ada pekerjaan",
+      "description": "Masukkan query pencarian di atas untuk mulai menemukan lead bisnis berkualitas tinggi dari Google Maps."
+    },
+    "features": {
+      "findQualityLeads": {
+        "title": "Temukan Lead Berkualitas",
+        "description": "Penilaian bertenaga AI untuk mengidentifikasi prospek terbaik Anda"
+      },
+      "fastEnrichment": {
+        "title": "Pengayaan Cepat",
+        "description": "Dapatkan email, nomor telepon, dan profil sosial"
+      },
+      "aiOutreach": {
+        "title": "Outreach AI",
+        "description": "Buat pesan outreach yang dipersonalisasi"
+      }
+    },
+    "sampleResults": {
+      "title": "Contoh Hasil",
+      "description": "Ini preview lead yang bisa Anda temukan. Masuk untuk memulai scrape Anda sendiri!",
+      "signInButton": "Masuk untuk memulai"
+    }
+  },
+  "scrapeForm": {
+    "title": "Pekerjaan Scrape Baru",
+    "description": "Cari lead bisnis di Google Maps",
+    "queryLabel": "Query Pencarian",
+    "queryPlaceholder": "mis., kedai kopi di Jakarta",
+    "queryHint": "Gunakan kategori bisnis + lokasi untuk hasil terbaik",
+    "tryExamples": "Coba:",
+    "maxResults": "Hasil Maksimal: {value}",
+    "minScore": "Skor Minimal: {value}",
+    "showAdvanced": "Tampilkan Opsi Lanjutan",
+    "hideAdvanced": "Sembunyikan Opsi Lanjutan",
+    "skipEnrichment": "Lewati Pengayaan",
+    "skipEnrichmentDesc": "Scraping lebih cepat, data kontak lebih sedikit",
+    "skipOutreach": "Lewati Outreach",
+    "skipOutreachDesc": "Tanpa pesan yang dibuat AI",
+    "productContext": "Konteks Produk",
+    "productContextPlaceholder": "Jelaskan produk/layanan Anda untuk pesan outreach yang dipersonalisasi...",
+    "characterCount": "{current}/{max} karakter",
+    "characterLimit": "Harap kurangi hingga {max} karakter atau kurang",
+    "startScraping": "Mulai Scraping",
+    "scraping": "Sedang Scraping...",
+    "checking": "Memeriksa...",
+    "disabledMessage": "Pekerjaan sudah berjalan. Tunggu hingga selesai atau batalkan.",
+    "errors": {
+      "rateLimited": "Anda membuat permintaan terlalu cepat. Harap tunggu sebelum mencoba lagi.",
+      "tryAgainIn": "Coba lagi dalam {seconds} detik",
+      "accountRestricted": "Akun Anda telah dibatasi sementara karena permintaan berlebihan. Pembatasan ini akan dicabut secara otomatis. Silakan coba lagi nanti."
+    }
+  },
+  "leadsTable": {
+    "title": "Lead ({count})",
+    "description": "Klik baris untuk melihat pesan outreach",
+    "loading": "Memuat...",
+    "headers": {
+      "name": "Nama",
+      "category": "Kategori",
+      "rating": "Rating",
+      "score": "Skor",
+      "tier": "Tingkat",
+      "contact": "Kontak",
+      "actions": "Aksi"
+    },
+    "emptyStates": {
+      "noResults": "Tidak ada hasil ditemukan",
+      "noBusinesses": "Google Maps tidak mengembalikan bisnis apa pun untuk query ini.",
+      "interrupted": "Pekerjaan terganggu",
+      "notSaved": "Hasil tidak dapat disimpan. Silakan coba ulang pekerjaan.",
+      "tipsTitle": "Tips untuk hasil lebih baik:",
+      "tips": {
+        "categories": "Gunakan kategori bisnis: 'kedai kopi', 'restoran'",
+        "location": "Tambahkan lokasi: 'di Jakarta', 'dekat Senopati'",
+        "specific": "Lebih spesifik: 'Restoran Jepang di Kemang'"
+      }
+    },
+    "contactInfo": {
+      "phone": "Telepon:",
+      "email": "Email:",
+      "whatsapp": "WhatsApp:",
+      "owner": "Pemilik:",
+      "address": "Alamat:",
+      "social": "Sosial:",
+      "sendMessage": "Kirim Pesan",
+      "openChat": "Buka Chat"
+    },
+    "research": {
+      "title": "Riset Bisnis",
+      "generatedAgo": "Dibuat {time} yang lalu",
+      "generateButton": "Buat riset",
+      "generatingButton": "Sedang meneliti...",
+      "copyButton": "Salin brief",
+      "description": "Buat brief singkat untuk menyesuaikan outreach Anda. Kami akan menangkap pain points, peluang, dan talking points dalam sekitar 30 detik.",
+      "sections": {
+        "painPoints": "Pain Points",
+        "opportunities": "Peluang",
+        "talkingPoints": "Talking Points"
+      },
+      "highlights": "Highlight untuk digunakan dalam outreach"
+    },
+    "outreach": {
+      "title": "Pesan Outreach",
+      "email": "Email",
+      "whatsapp": "WhatsApp",
+      "linkedin": "LinkedIn",
+      "sendViaWhatsApp": "Kirim via WhatsApp"
+    }
+  },
+  "jobCard": {
+    "status": {
+      "pending": "menunggu",
+      "running": "berjalan",
+      "completed": "selesai",
+      "failed": "gagal",
+      "cancelled": "dibatalkan"
+    },
+    "leadsSummary": "{count} lead",
+    "tierSummary": "{hot} hot, {warm} warm, {cold} cold",
+    "waiting": "Menunggu...",
+    "actions": {
+      "retry": "Coba Ulang",
+      "view": "Lihat",
+      "delete": "Hapus",
+      "exportCsv": "Export CSV",
+      "exportJson": "Export JSON"
+    },
+    "messages": {
+      "jobRestarted": "Pekerjaan dimulai ulang",
+      "jobDeleted": "Pekerjaan dihapus"
+    },
+    "errors": {
+      "exportFailed": "Export gagal",
+      "retryFailed": "Gagal mencoba ulang pekerjaan",
+      "deleteFailed": "Gagal menghapus pekerjaan"
+    },
+    "deleteConfirmation": "Apakah Anda yakin ingin menghapus pekerjaan ini? Tindakan ini tidak dapat dibatalkan."
+  },
+  "activeJobCard": {
+    "statusStarting": "Memulai...",
+    "statusInitializing": "Menginisialisasi...",
+    "progress": "{current} / {total}",
+    "leadsFound": "{count} lead ditemukan",
+    "viewDetails": "Lihat Detail",
+    "elapsed": "{minutes}m {seconds}d"
+  },
+  "progressCard": {
+    "titles": {
+      "starting": "Memulai...",
+      "running": "Scraping Sedang Berjalan",
+      "completed": "Scrape Selesai",
+      "failed": "Scrape Gagal",
+      "cancelled": "Dibatalkan"
+    },
+    "progress": "{current} / {total}",
+    "percentage": "{percent}%",
+    "actions": {
+      "cancel": "Batalkan",
+      "cancelling": "Membatalkan...",
+      "resume": "Lanjutkan Pekerjaan",
+      "retry": "Coba Ulang Pekerjaan"
+    },
+    "summary": {
+      "new": "Baru",
+      "hot": "Hot",
+      "warm": "Warm",
+      "cold": "Cold"
+    },
+    "deduplication": {
+      "allDuplicates": "Semua lead sudah ada",
+      "allDuplicatesDesc": "Menemukan {count} bisnis, tapi {count} sudah ada di pekerjaan sebelumnya.",
+      "someDuplicates": "{count} duplikat dilewati dari pekerjaan sebelumnya",
+      "viewExisting": "Lihat lead yang sudah ada di:"
+    },
+    "emptyState": "Tidak ada bisnis ditemukan. Coba query berbeda dengan kategori bisnis dan lokasi.",
+    "resumeInfo": "{count} lead disimpan • Akan dilanjutkan dari tempat berhenti"
+  },
+  "queryWarningModal": {
+    "title": "Query Mungkin Mengembalikan Sedikit Hasil",
+    "description": "Query ini mungkin tidak bekerja dengan baik di Google Maps.",
+    "tryInstead": "Coba salah satu dari ini:",
+    "editButton": "Edit Query",
+    "continueButton": "Lanjutkan Scrape"
+  },
+  "duplicateQueryModal": {
+    "titles": {
+      "exact": "Query Sudah Dicari",
+      "similar": "Query Serupa Ditemukan"
+    },
+    "description": "Anda memiliki pencarian serupa di riwayat.",
+    "previousSearches": "Pencarian sebelumnya:",
+    "aiSuggestions": "Coba ini sebagai gantinya:",
+    "leadCount": "{count} lead",
+    "totalSummary": "Total: {count} lead dari {jobCount} pencarian serupa.",
+    "actions": {
+      "cancel": "Batalkan",
+      "searchAnyway": "Cari Saja"
+    }
+  },
+  "accountRestrictedBanner": {
+    "title": "Akun Dibatasi Sementara",
+    "message": "Akun Anda telah dibatasi karena permintaan berlebihan. Pembatasan ini akan dicabut secara otomatis. Silakan coba lagi nanti."
+  },
+  "jobsPage": {
+    "title": "Riwayat Pekerjaan",
+    "subtitle": "Lihat pekerjaan scrape yang sudah dilakukan",
+    "refresh": "Refresh",
+    "newScrape": "Scrape Baru",
+    "emptyState": {
+      "title": "Belum ada pekerjaan ditemukan.",
+      "button": "Mulai Scrape Pertama Anda"
+    }
+  },
+  "jobDetailPage": {
+    "backToJobs": "Kembali ke Pekerjaan",
+    "jobId": "ID Pekerjaan: {id}",
+    "notFound": "Pekerjaan tidak ditemukan",
+    "actions": {
+      "resume": "Lanjutkan",
+      "retry": "Coba Ulang",
+      "refresh": "Refresh",
+      "exportCsv": "CSV",
+      "exportJson": "JSON"
+    }
+  }
+}

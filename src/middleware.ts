@@ -1,7 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import createMiddleware from 'next-intl/middleware';
+import { routing } from '../i18n/routing';
+
+// Create i18n middleware
+const intlMiddleware = createMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
+  // Run i18n middleware first (handles locale detection and sets cookie)
+  const intlResponse = intlMiddleware(request);
+
+  // Chain with Supabase auth middleware
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -49,6 +58,11 @@ export async function middleware(request: NextRequest) {
     url.pathname = "/";
     return NextResponse.redirect(url);
   }
+
+  // Merge i18n cookies with Supabase response
+  intlResponse.cookies.getAll().forEach(cookie => {
+    supabaseResponse.cookies.set(cookie.name, cookie.value);
+  });
 
   return supabaseResponse;
 }

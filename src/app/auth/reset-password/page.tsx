@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, Loader2, Lock, AlertCircle, CheckCircle2, Check, X } from "lucide-react";
+import { useTranslations } from 'next-intl';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,8 @@ interface PasswordRequirement {
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const t = useTranslations('auth.resetPassword');
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -30,11 +33,11 @@ export default function ResetPasswordPage() {
   const [isValidSession, setIsValidSession] = useState<boolean | null>(null);
 
   const passwordRequirements: PasswordRequirement[] = useMemo(() => [
-    { label: "At least 8 characters", met: password.length >= 8 },
-    { label: "Contains a number", met: /\d/.test(password) },
-    { label: "Contains uppercase letter", met: /[A-Z]/.test(password) },
-    { label: "Contains lowercase letter", met: /[a-z]/.test(password) },
-  ], [password]);
+    { label: t('passwordRequirements.minLength'), met: password.length >= 8 },
+    { label: t('passwordRequirements.hasNumber'), met: /\d/.test(password) },
+    { label: t('passwordRequirements.hasUppercase'), met: /[A-Z]/.test(password) },
+    { label: t('passwordRequirements.hasLowercase'), met: /[a-z]/.test(password) },
+  ], [password, t]);
 
   const allRequirementsMet = passwordRequirements.every(req => req.met);
   const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
@@ -55,13 +58,13 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
 
     if (!allRequirementsMet) {
-      setError("Please meet all password requirements");
+      setError(t('errors.passwordRequirements'));
       setIsLoading(false);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t('errors.passwordMismatch'));
       setIsLoading(false);
       return;
     }
@@ -81,7 +84,7 @@ export default function ResetPasswordPage() {
       await supabase.auth.signOut();
       router.push("/auth/signin?message=password_updated");
     } catch {
-      setError("An unexpected error occurred. Please try again.");
+      setError(t('errors.unexpected'));
     } finally {
       setIsLoading(false);
     }
@@ -106,15 +109,15 @@ export default function ResetPasswordPage() {
               </div>
             </div>
             <CardTitle className="text-2xl text-center font-bold">
-              Invalid or Expired Link
+              {t('invalid.title')}
             </CardTitle>
             <CardDescription className="text-center text-base">
-              This password reset link is invalid or has expired. Please request a new one.
+              {t('invalid.description')}
             </CardDescription>
           </CardHeader>
           <CardFooter>
             <Button className="w-full" onClick={() => router.push("/auth/forgot-password")}>
-              Request New Link
+              {t('invalid.requestNew')}
             </Button>
           </CardFooter>
         </Card>
@@ -132,10 +135,10 @@ export default function ResetPasswordPage() {
             </div>
           </div>
           <CardTitle className="text-2xl text-center font-bold">
-            Set new password
+            {t('title')}
           </CardTitle>
           <CardDescription className="text-center">
-            Enter your new password below
+            {t('description')}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -147,13 +150,13 @@ export default function ResetPasswordPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="password">New Password</Label>
+              <Label htmlFor="password">{t('password.label')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter new password"
+                  placeholder={t('password.placeholder')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -182,13 +185,13 @@ export default function ResetPasswordPage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Label htmlFor="confirmPassword">{t('confirmPassword.label')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="confirmPassword"
                   type="password"
-                  placeholder="Confirm new password"
+                  placeholder={t('confirmPassword.placeholder')}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
@@ -220,7 +223,7 @@ export default function ResetPasswordPage() {
               disabled={isLoading || !allRequirementsMet || !passwordsMatch}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Update Password
+              {t('submitButton')}
             </Button>
           </CardFooter>
         </form>

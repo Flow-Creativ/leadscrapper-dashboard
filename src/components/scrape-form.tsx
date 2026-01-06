@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Search, Settings2, Zap, Loader2, AlertCircle, Ban } from "lucide-react";
+import { useLocale, useTranslations } from 'next-intl';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,6 +47,9 @@ export function ScrapeForm({
   disabledMessage,
   onBanned,
 }: ScrapeFormProps) {
+  const locale = useLocale();
+  const t = useTranslations('scrapeForm');
+
   const [query, setQuery] = useState("");
   const [maxResults, setMaxResults] = useState(10);
   const [minScore, setMinScore] = useState(0);
@@ -72,7 +76,7 @@ export function ScrapeForm({
 
   // Track if component is mounted (client-side only)
   const [isMounted, setIsMounted] = useState(false);
-  const [exampleQueries] = useState(() => getRandomExamples(3));
+  const [exampleQueries] = useState(() => getRandomExamples(3, locale));
 
   // Set mounted flag after hydration to avoid SSR mismatch
   useEffect(() => {
@@ -88,6 +92,7 @@ export function ScrapeForm({
       skip_enrichment: skipEnrichment,
       skip_outreach: skipOutreach,
       product_context: productContext || undefined,
+      language: locale,
     });
   };
 
@@ -129,7 +134,7 @@ export function ScrapeForm({
         if (error.isRateLimited) {
           setFormError({
             type: "rate_limit",
-            message: "You're making requests too fast. Please wait before trying again.",
+            message: t('errors.rateLimited'),
             retryAfter: error.retryAfter || 60,
           });
           handleApiError(error); // Show toast
@@ -139,7 +144,7 @@ export function ScrapeForm({
         if (error.isBanned) {
           setFormError({
             type: "banned",
-            message: error.message || "Your account has been temporarily restricted. Please try again later.",
+            message: error.message || t('errors.banned'),
           });
           handleApiError(error); // Show toast
           onBanned?.(); // Notify parent
@@ -195,31 +200,31 @@ export function ScrapeForm({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
-            New Scrape Job
+            {t('title')}
           </CardTitle>
           <CardDescription>
-            Search Google Maps for business leads
+            {t('description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Query Input */}
             <div className="space-y-2">
-              <Label htmlFor="query">Search Query</Label>
+              <Label htmlFor="query">{t('queryLabel')}</Label>
               <Input
                 id="query"
-                placeholder="e.g., coffee shops in Jakarta"
+                placeholder={t('queryPlaceholder')}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 disabled={isFormDisabled}
                 className="text-base"
               />
               <p className="text-xs text-muted-foreground">
-                Use business categories + location for best results
+                {t('queryHint')}
               </p>
               {!query && isMounted && (
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Try:</span>
+                  <span className="text-xs text-muted-foreground">{t('tryExamples')}</span>
                   {exampleQueries.map((example) => (
                     <button
                       key={example}
@@ -238,7 +243,7 @@ export function ScrapeForm({
             {/* Quick Settings Row */}
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label>Max Results: {maxResults}</Label>
+                <Label>{t('maxResults', { value: maxResults })}</Label>
                 <Slider
                   value={[maxResults]}
                   onValueChange={([value]) => setMaxResults(value)}
@@ -249,7 +254,7 @@ export function ScrapeForm({
                 />
               </div>
               <div className="space-y-2">
-                <Label>Min Score: {minScore}</Label>
+                <Label>{t('minScore', { value: minScore })}</Label>
                 <Slider
                   value={[minScore]}
                   onValueChange={([value]) => setMinScore(value)}
@@ -270,7 +275,7 @@ export function ScrapeForm({
               className="w-full justify-start gap-2 text-muted-foreground"
             >
               <Settings2 className="h-4 w-4" />
-              {showAdvanced ? "Hide" : "Show"} Advanced Options
+              {showAdvanced ? t('hideAdvanced') : t('showAdvanced')}
             </Button>
 
             {/* Advanced Options */}
@@ -278,9 +283,9 @@ export function ScrapeForm({
               <div className="space-y-4 rounded-lg border p-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Skip Enrichment</Label>
+                    <Label>{t('skipEnrichment')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Faster scraping, less contact data
+                      {t('skipEnrichmentDesc')}
                     </p>
                   </div>
                   <Switch
@@ -292,9 +297,9 @@ export function ScrapeForm({
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Skip Outreach</Label>
+                    <Label>{t('skipOutreach')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      No AI-generated messages
+                      {t('skipOutreachDesc')}
                     </p>
                   </div>
                   <Switch
@@ -306,10 +311,10 @@ export function ScrapeForm({
 
                 {!skipOutreach && (
                   <div className="space-y-2">
-                    <Label htmlFor="productContext">Product Context</Label>
+                    <Label htmlFor="productContext">{t('productContext')}</Label>
                     <Textarea
                       id="productContext"
-                      placeholder="Describe your product/service for personalized outreach messages..."
+                      placeholder={t('productContextPlaceholder')}
                       value={productContext}
                       onChange={(e) => setProductContext(e.target.value)}
                       disabled={isFormDisabled}
@@ -319,11 +324,11 @@ export function ScrapeForm({
                     />
                     <div className="flex items-center justify-between">
                       <p className={`text-sm ${isOverCharLimit ? "text-red-500 font-medium" : "text-muted-foreground"}`}>
-                        {productContextChars}/{MAX_PRODUCT_CONTEXT_CHARS} characters
+                        {t('characterCount', { current: productContextChars, max: MAX_PRODUCT_CONTEXT_CHARS })}
                       </p>
                       {isOverCharLimit && (
                         <p className="text-sm text-red-500">
-                          Please reduce to {MAX_PRODUCT_CONTEXT_CHARS} characters or less
+                          {t('characterLimit', { max: MAX_PRODUCT_CONTEXT_CHARS })}
                         </p>
                       )}
                     </div>
@@ -355,12 +360,12 @@ export function ScrapeForm({
                 )}
                 <div>
                   <p className="font-medium">
-                    {formError.type === "banned" ? "Account Restricted" : "Rate Limited"}
+                    {formError.type === "banned" ? t('errors.accountRestricted') : t('errors.rateLimited')}
                   </p>
                   <p>{formError.message}</p>
                   {formError.retryAfter && (
                     <p className="mt-1 text-xs opacity-80">
-                      Try again in {formError.retryAfter} seconds
+                      {t('errors.tryAgainIn', { seconds: formError.retryAfter })}
                     </p>
                   )}
                 </div>
@@ -376,17 +381,17 @@ export function ScrapeForm({
               {isChecking ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Checking...
+                  {t('checking')}
                 </>
               ) : isLoading ? (
                 <>
                   <Zap className="mr-2 h-4 w-4 animate-pulse" />
-                  Scraping...
+                  {t('scraping')}
                 </>
               ) : (
                 <>
                   <Zap className="mr-2 h-4 w-4" />
-                  Start Scraping
+                  {t('startScraping')}
                 </>
               )}
             </Button>

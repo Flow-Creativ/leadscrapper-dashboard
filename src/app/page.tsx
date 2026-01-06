@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { History, LogIn, Sparkles, Target, Zap } from "lucide-react";
+import { useTranslations } from 'next-intl';
 import { Button } from "@/components/ui/button";
 import { ScrapeForm } from "@/components/scrape-form";
 import { ActiveJobCard } from "@/components/active-job-card";
@@ -16,6 +17,8 @@ import type { ScrapeRequest, Lead } from "@/lib/types";
 
 export default function Dashboard() {
   const router = useRouter();
+  const t = useTranslations('dashboard');
+  const tScrapeForm = useTranslations('scrapeForm');
   const { user, isLoading: authLoading } = useAuth();
   const [demoLeads, setDemoLeads] = useState<Lead[]>([]);
   const {
@@ -50,17 +53,17 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-            Dashboard
+            {t('title')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Discover high-quality business leads from Google Maps
+            {t('subtitle')}
           </p>
         </div>
         {user && (
           <Button variant="outline" asChild>
             <Link href="/jobs">
               <History className="mr-2 h-4 w-4" />
-              View History
+              {t('viewHistory')}
             </Link>
           </Button>
         )}
@@ -71,14 +74,14 @@ export default function Dashboard() {
         onSubmit={handleSubmit}
         isLoading={isStarting}
         disabled={user ? !canStartNewJob : false}
-        disabledMessage={user ? "A job is already running. Wait for it to complete or cancel it." : undefined}
+        disabledMessage={user ? tScrapeForm('disabledMessage') : undefined}
       />
 
       {/* Active Jobs Section */}
       {activeJobs.length > 0 && (
         <section className="space-y-4">
           <h2 className="text-lg font-semibold">
-            Active Jobs ({activeJobs.length})
+            {t('activeSectionTitle', { count: activeJobs.length })}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {activeJobs.map((job) => (
@@ -95,7 +98,7 @@ export default function Dashboard() {
       {/* Recent Completed Section */}
       {recentJobs.length > 0 && (
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold">Recent Completed</h2>
+          <h2 className="text-lg font-semibold">{t('recentSectionTitle')}</h2>
           <div className="space-y-2">
             {recentJobs.map((job) => (
               <RecentJobItem
@@ -118,9 +121,9 @@ export default function Dashboard() {
                 <Target className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h3 className="font-medium">Find Quality Leads</h3>
+                <h3 className="font-medium">{t('features.findQualityLeads.title')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  AI-powered scoring to identify your best prospects
+                  {t('features.findQualityLeads.description')}
                 </p>
               </div>
             </div>
@@ -129,9 +132,9 @@ export default function Dashboard() {
                 <Zap className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h3 className="font-medium">Fast Enrichment</h3>
+                <h3 className="font-medium">{t('features.fastEnrichment.title')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Get emails, phone numbers, and social profiles
+                  {t('features.fastEnrichment.description')}
                 </p>
               </div>
             </div>
@@ -140,9 +143,9 @@ export default function Dashboard() {
                 <Sparkles className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h3 className="font-medium">AI Outreach</h3>
+                <h3 className="font-medium">{t('features.aiOutreach.title')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Generate personalized outreach messages
+                  {t('features.aiOutreach.description')}
                 </p>
               </div>
             </div>
@@ -152,11 +155,11 @@ export default function Dashboard() {
           <div className="relative rounded-xl border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 via-background to-primary/5 p-6">
             <div className="absolute -top-3 left-6">
               <span className="bg-background px-2 text-sm font-medium text-primary">
-                Sample Results
+                {t('sampleResults.title')}
               </span>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Here&apos;s a preview of the leads you can discover. Sign in to start your own scrape!
+              {t('sampleResults.description')}
             </p>
             <div className="bg-background rounded-lg border shadow-sm">
               <LeadsTable leads={demoLeads} isLoading={false} />
@@ -165,7 +168,7 @@ export default function Dashboard() {
               <Button size="lg" asChild className="shadow-lg">
                 <Link href="/auth/signin">
                   <LogIn className="mr-2 h-4 w-4" />
-                  Sign in to get started
+                  {t('sampleResults.signInButton')}
                 </Link>
               </Button>
             </div>
@@ -179,9 +182,9 @@ export default function Dashboard() {
           <div className="rounded-full bg-muted p-4 mb-4">
             <Target className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-medium mb-2">No jobs yet</h3>
+          <h3 className="text-lg font-medium mb-2">{t('emptyState.title')}</h3>
           <p className="text-muted-foreground max-w-sm">
-            Enter a search query above to start discovering high-quality business leads from Google Maps.
+            {t('emptyState.description')}
           </p>
         </div>
       )}

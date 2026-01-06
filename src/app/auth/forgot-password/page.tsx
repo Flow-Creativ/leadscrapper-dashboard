@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { MapPin, Loader2, Mail, AlertCircle, ArrowLeft } from "lucide-react";
+import { useTranslations } from 'next-intl';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations('auth.forgotPassword');
+
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,7 +43,7 @@ export default function ForgotPasswordPage() {
 
       setSuccess(true);
     } catch {
-      setError("An unexpected error occurred. Please try again.");
+      setError(t('errors.unexpected'));
     } finally {
       setIsLoading(false);
     }
@@ -57,10 +60,10 @@ export default function ForgotPasswordPage() {
               </div>
             </div>
             <CardTitle className="text-2xl text-center font-bold">
-              Check your email
+              {t('success.title')}
             </CardTitle>
             <CardDescription className="text-center text-base">
-              We&apos;ve sent a password reset link to
+              {t('success.description')}
               <br />
               <span className="font-medium text-foreground">{email}</span>
             </CardDescription>
@@ -68,10 +71,10 @@ export default function ForgotPasswordPage() {
           <CardContent className="space-y-4">
             <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
               <p className="mb-2">
-                Click the link in the email to reset your password. If you don&apos;t see it, check your spam folder.
+                {t('success.instructions')}
               </p>
               <p>
-                The link will expire in 1 hour.
+                {t('success.expiry')}
               </p>
             </div>
           </CardContent>
@@ -79,7 +82,7 @@ export default function ForgotPasswordPage() {
             <Button variant="outline" className="w-full" asChild>
               <Link href="/auth/signin">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Sign In
+                {t('success.backToSignIn')}
               </Link>
             </Button>
           </CardFooter>
@@ -98,10 +101,10 @@ export default function ForgotPasswordPage() {
             </div>
           </div>
           <CardTitle className="text-2xl text-center font-bold">
-            Forgot your password?
+            {t('title')}
           </CardTitle>
           <CardDescription className="text-center">
-            Enter your email and we&apos;ll send you a reset link
+            {t('description')}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -113,13 +116,13 @@ export default function ForgotPasswordPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('email.label')}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t('email.placeholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -132,14 +135,14 @@ export default function ForgotPasswordPage() {
           <CardFooter className="flex flex-col space-y-4 pt-2">
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Send Reset Link
+              {t('submitButton')}
             </Button>
             <Link
               href="/auth/signin"
               className="text-sm text-muted-foreground hover:text-primary flex items-center justify-center gap-1"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Sign In
+              {t('backToSignIn')}
             </Link>
           </CardFooter>
         </form>

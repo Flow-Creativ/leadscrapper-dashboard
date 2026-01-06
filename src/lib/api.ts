@@ -215,5 +215,36 @@ export async function generateLeadResearch(leadId: string): Promise<LeadResearch
   });
 }
 
+// User Preferences
+export async function getUserPreferences(): Promise<{ language: string }> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('user_preferences')
+    .select('language')
+    .single();
+
+  if (error) {
+    // Return default if no preferences found
+    return { language: 'en' };
+  }
+
+  return data;
+}
+
+export async function updateUserPreferences(preferences: { language: string }): Promise<void> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('Not authenticated');
+  }
+
+  await supabase
+    .from('user_preferences')
+    .upsert({ user_id: user.id, ...preferences })
+    .select()
+    .single();
+}
+
 // Export getAuthToken for SSE auth (cookie fallback)
 export { getAuthToken };

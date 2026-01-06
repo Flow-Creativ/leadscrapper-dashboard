@@ -7,6 +7,7 @@ export interface ScrapeRequest {
   skip_enrichment?: boolean;
   skip_outreach?: boolean;
   product_context?: string;
+  language?: string;
 }
 
 export interface JobCreatedResponse {

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, RefreshCw, Download, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useTranslations } from 'next-intl';
 import { Button } from "@/components/ui/button";
 import { ProgressCard } from "@/components/progress-card";
 import { LeadsTable } from "@/components/leads-table";
@@ -15,6 +16,7 @@ import type { JobStatusResponse, Lead, SSEMessage } from "@/lib/types";
 export default function JobDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations('jobDetailPage');
   const jobId = params.id as string;
   const hasTrackedView = useRef(false);
 
@@ -340,7 +342,7 @@ export default function JobDetailPage() {
         <Button variant="ghost" asChild>
           <Link href="/jobs">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Jobs
+            {t('backToJobs')}
           </Link>
         </Button>
         <div className="rounded-lg bg-red-50 p-4 text-red-600 dark:bg-red-950 dark:text-red-400">
@@ -356,10 +358,10 @@ export default function JobDetailPage() {
         <Button variant="ghost" asChild>
           <Link href="/jobs">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Jobs
+            {t('backToJobs')}
           </Link>
         </Button>
-        <p>Job not found</p>
+        <p>{t('notFound')}</p>
       </div>
     );
   }
@@ -375,7 +377,7 @@ export default function JobDetailPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{job.query}</h1>
-            <p className="text-sm text-muted-foreground">Job ID: {job.job_id}</p>
+            <p className="text-sm text-muted-foreground">{t('jobId', { id: job.job_id })}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -388,14 +390,14 @@ export default function JobDetailPage() {
               <RotateCcw
                 className={`mr-2 h-4 w-4 ${isRetrying ? "animate-spin" : ""}`}
               />
-              {canResume ? "Resume" : "Retry"}
+              {canResume ? t('actions.resume') : t('actions.retry')}
             </Button>
           )}
           <Button variant="outline" onClick={fetchData} disabled={isLoading}>
             <RefreshCw
               className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
             />
-            Refresh
+            {t('actions.refresh')}
           </Button>
           {leads.length > 0 && (
             <>
@@ -405,7 +407,7 @@ export default function JobDetailPage() {
                 disabled={isExporting}
               >
                 <Download className="mr-2 h-4 w-4" />
-                CSV
+                {t('actions.exportCsv')}
               </Button>
               <Button
                 variant="outline"
@@ -413,7 +415,7 @@ export default function JobDetailPage() {
                 disabled={isExporting}
               >
                 <Download className="mr-2 h-4 w-4" />
-                JSON
+                {t('actions.exportJson')}
               </Button>
             </>
           )}

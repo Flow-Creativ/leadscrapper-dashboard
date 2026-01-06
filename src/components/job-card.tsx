@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { useTranslations } from 'next-intl';
 import {
   Clock,
   CheckCircle2,
@@ -43,6 +44,7 @@ interface JobCardProps {
 
 export function JobCard({ job, onJobDeleted }: JobCardProps) {
   const router = useRouter();
+  const t = useTranslations('jobCard');
   const [isExporting, setIsExporting] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -75,10 +77,10 @@ export function JobCard({ job, onJobDeleted }: JobCardProps) {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success(`Exported as ${format.toUpperCase()}`);
+      toast.success(t(`actions.export${format === 'csv' ? 'Csv' : 'Json'}`));
       trackLeadExported(format, job.summary?.total_leads || 0);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Export failed");
+      toast.error(err instanceof Error ? err.message : t('errors.exportFailed'));
     } finally {
       setIsExporting(false);
     }
@@ -95,26 +97,26 @@ export function JobCard({ job, onJobDeleted }: JobCardProps) {
         skip_outreach: job.skip_outreach ?? undefined,
         product_context: job.product_context ?? undefined,
       });
-      toast.success("Job restarted");
+      toast.success(t('messages.jobRestarted'));
       router.push(`/jobs/${result.job_id}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to retry job");
+      toast.error(err instanceof Error ? err.message : t('errors.retryFailed'));
     } finally {
       setIsRetrying(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this job? This cannot be undone.")) {
+    if (!confirm(t('deleteConfirmation'))) {
       return;
     }
     setIsDeleting(true);
     try {
       await deleteJob(job.job_id);
-      toast.success("Job deleted");
+      toast.success(t('messages.jobDeleted'));
       onJobDeleted?.(job.job_id);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete job");
+      toast.error(err instanceof Error ? err.message : t('errors.deleteFailed'));
     } finally {
       setIsDeleting(false);
     }
@@ -135,7 +137,7 @@ export function JobCard({ job, onJobDeleted }: JobCardProps) {
             {job.query}
           </CardTitle>
           <Badge variant="outline" className="capitalize">
-            {job.status}
+            {t(`status.${job.status}`)}
           </Badge>
         </div>
         <CardDescription className="flex items-center gap-1">
@@ -147,7 +149,7 @@ export function JobCard({ job, onJobDeleted }: JobCardProps) {
         <div className="flex items-center justify-between">
           {job.summary ? (
             <div className="flex items-center gap-4 text-sm">
-              <span className="font-medium">{job.summary.total_leads} leads</span>
+              <span className="font-medium">{t('leadsSummary', { count: job.summary.total_leads })}</span>
               <span className="flex items-center gap-1 text-red-500">
                 <Flame className="h-4 w-4" />
                 {job.summary.hot}
@@ -161,7 +163,7 @@ export function JobCard({ job, onJobDeleted }: JobCardProps) {
             </span>
           ) : (
             <span className="text-sm text-muted-foreground">
-              {job.error || "Waiting..."}
+              {job.error || t('waiting')}
             </span>
           )}
           <div className="flex items-center gap-1">
@@ -178,7 +180,7 @@ export function JobCard({ job, onJobDeleted }: JobCardProps) {
                   ) : (
                     <RotateCcw className="h-4 w-4" />
                   )}
-                  <span className="ml-1">Retry</span>
+                  <span className="ml-1">{t('actions.retry')}</span>
                 </Button>
                 <Button
                   variant="ghost"
@@ -186,6 +188,7 @@ export function JobCard({ job, onJobDeleted }: JobCardProps) {
                   onClick={handleDelete}
                   disabled={isDeleting || isRetrying}
                   className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                  title={t('actions.delete')}
                 >
                   {isDeleting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -208,10 +211,10 @@ export function JobCard({ job, onJobDeleted }: JobCardProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => handleExport("csv")}>
-                    Export CSV
+                    {t('actions.exportCsv')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleExport("json")}>
-                    Export JSON
+                    {t('actions.exportJson')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -221,7 +224,7 @@ export function JobCard({ job, onJobDeleted }: JobCardProps) {
                 href={`/jobs/${job.job_id}`}
                 onClick={() => trackNavigation(`/jobs/${job.job_id}`, "job_card")}
               >
-                View
+                {t('actions.view')}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
